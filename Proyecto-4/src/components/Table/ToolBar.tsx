@@ -1,6 +1,7 @@
 import React from "react";
 import type { ToolBarProps } from "./ToolBar.types";
 
+
 function ToolBar({ titulo, onSearch, onRegister }: ToolBarProps) {
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     onSearch(event.target.value);
@@ -16,7 +17,7 @@ function ToolBar({ titulo, onSearch, onRegister }: ToolBarProps) {
             type="text"
             placeholder="Buscar..."
             onChange={handleSearch}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 w-64 transition duration-150 ease-in-out"
+            className="px-4 py-2 border border-gray-400 rounded-md shadow-xs focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
           />
 
           <button

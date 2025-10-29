@@ -3,6 +3,8 @@ import type { Proveedor } from "../types/models";
 import type { Item } from "../types/models";
 import Table from "../components/Table/Table";
 import ToolBar from "../components/Table/ToolBar";
+import { useState } from "react";
+import Modal from "../components/Modal/Modal";
 
 const ejemploProveedores: Proveedor[] = [
   {
@@ -14,7 +16,7 @@ const ejemploProveedores: Proveedor[] = [
   },
 ];
 
-function Provedores() {
+function Proveedores() {
   const proveedor = ejemploProveedores;
 
   const columnas = [
@@ -24,6 +26,23 @@ function Provedores() {
     { key: "total", header: "Total" },
     { key: "actions", header: "Acciones" },
   ];
+
+  const userRegistro = (
+      //Logica para el envío del formulario
+      <button className="btn bg-blue-500 hover:bg-blue-600 text-white">
+        Registrar
+      </button>
+    );
+  
+    const [isModalOpen, setIsModalOpen] = useState(false);
+  
+    const handleOpenModal = () => {
+      setIsModalOpen(true);
+    };
+  
+    const handleCloseModal = () => {
+      setIsModalOpen(false);
+    };
 
   const handleEdit = (item: Item) => {
     console.log("Editar");
@@ -62,8 +81,12 @@ function Provedores() {
           />
         </section>
       </main>
+
+     
+
+     
     </>
   );
 }
 
-export default Provedores;
+export default Proveedores;

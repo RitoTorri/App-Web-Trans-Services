@@ -8,6 +8,8 @@ export interface Empleado extends Item {
   apellido: string;
   cedula: string;
   rol: string;
+  telefono: string;
+  correo: string;
 }
 
 export interface Servicio extends Item{
@@ -22,8 +24,10 @@ export interface Servicio extends Item{
 export interface Cliente extends Item{
   nombre: string;
   apellido: string;
-  contacto: string;
+  telefono:string;
+  correo: string;
   direccion: string;
+  
 }
 
 export interface Proveedor extends Item{
