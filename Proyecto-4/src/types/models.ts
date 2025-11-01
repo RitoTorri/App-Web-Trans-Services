@@ -23,9 +23,8 @@ export interface Servicio extends Item{
 
 export interface Cliente extends Item{
   nombre: string;
-  apellido: string;
+  rif: string;
   telefono:string;
-  correo: string;
   direccion: string;
   
 }

@@ -10,9 +10,8 @@ const ejemploClientes: Cliente[] = [
   {
     id: 1,
     nombre: "José",
-    apellido: "Ramos",
+    rif: "J-08512817-4",
     telefono: "04126378129",
-    correo: "Josee517@gmail.com",
     direccion: "Carrera 19 entre calle 50",
     
   },
@@ -23,9 +22,8 @@ function Clientes() {
 
   const columnas = [
     { key: "nombre", header: "Nombre" },
-    { key: "apellido", header: "Apellido" },
+    { key: "rif", header: "Rif" },
     { key: "telefono", header: "Teléfono" },
-    { key: "correo", header: "Correo" },
     { key: "direccion", header: "Dirección" },
     { key: "actions", header: "Acciones" },
   ];
@@ -107,46 +105,19 @@ function Clientes() {
           </div>
           <div>
             <label
-              htmlFor="apellido"
+              htmlFor="rif"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Apellido:
+              RIF:
             </label>
             <input
               type="text"
-              name="apellido"
-              placeholder="Ingrese el Apellido"
-              className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="apellido"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Teléfono:
-            </label>
-            <input
-              type="text"
-              name="telefono"
-              placeholder="Ingrese el Teléfono"
+              name="rif"
+              placeholder="Ingrese el RIF"
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
             </div>
-            <div>
-            <label
-              htmlFor="correo"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Correo Eléctronico:
-            </label>
-            <input
-              type="email"
-              name="correo"
-              placeholder="Ingrese el Correo Eléctronico"
-              className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-            />
-          </div>
+            
           <div>
             <label
               htmlFor="telefono"
