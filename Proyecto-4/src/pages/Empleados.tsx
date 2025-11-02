@@ -86,9 +86,9 @@ function Empleados() {
 
   return (
     <>
-      <main className="flex">
+      <main className="min-h-screen ">
         <SideBar />
-        <section className="flex flex-col flex-grow items-center w-full">
+        <section className="flex flex-col flex-grow items-center w-full pl-4 pr-4">
           <ToolBar
             titulo="Empleados"
             onSearch={handleSearch}

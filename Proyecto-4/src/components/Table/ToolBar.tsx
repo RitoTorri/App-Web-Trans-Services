@@ -13,12 +13,21 @@ function ToolBar({ titulo, onSearch, onRegister }: ToolBarProps) {
         <h1 className="text-2xl font-bold text-gray-800">{titulo}</h1>
 
         <div className="flex items-center space-x-4">
+          <div className="relative min-w-64">
           <input
             type="text"
             placeholder="Buscar..."
             onChange={handleSearch}
-            className="px-4 py-2 border border-gray-400 rounded-md shadow-xs focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+            className="w-full px-4 py-2 border border-gray-400 rounded-md shadow-xs focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
           />
+          <button className="absolute right-4 top-1 bottom-1 cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="bi bi-search text-gray-600" viewBox="0 0 16 16">
+  <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+</svg>
+
+          </button>
+
+          </div>
 
           <button
             onClick={onRegister}

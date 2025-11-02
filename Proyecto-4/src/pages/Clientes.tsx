@@ -1,4 +1,3 @@
-import SideBar from "../components/SideBar";
 import Table from "../components/Table/Table";
 import ToolBar from "../components/Table/ToolBar";
 import type { Cliente } from "../types/models";
@@ -55,10 +54,6 @@ function Clientes() {
     item;
   };
 
-  const handleRegister = () => {
-    console.log("Registrar");
-    //Logica para el formulario de registro
-  };
 
   const handleSearch = () => {
     console.log("Buscar");
@@ -66,9 +61,8 @@ function Clientes() {
 
   return (
     <>
-      <main className="flex">
-        <SideBar />
-        <section className="flex flex-col flex-grow w-full items-center">
+      <main className="min-h-screen">
+        <section className="flex flex-col flex-grow w-full items-center  pl-4 pr-4">
           <ToolBar
             titulo="Clientes"
             onRegister={handleOpenModal}

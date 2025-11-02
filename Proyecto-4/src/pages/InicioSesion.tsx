@@ -10,7 +10,8 @@ function InicioSesion() {
             <div className="mb-4">
               <label
                 htmlFor="usuario"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-gray-700 mb-1 transition-all"
+                id="labelnombre"
               >
                 Usuario:
               </label>
@@ -27,7 +28,7 @@ function InicioSesion() {
                 </svg>
                 <input
                   type="text"
-                  className="border border-gray-400 rounded-md mb-2 shadow-xs w-full py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+                  className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
                   placeholder="Ingrese su Usuario"
                   name="usuario"
                 />

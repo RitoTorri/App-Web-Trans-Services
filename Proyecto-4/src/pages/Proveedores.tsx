@@ -65,9 +65,9 @@ function Proveedores() {
 
   return (
     <>
-      <main className="flex">
+      <main className="min-h-screen">
         <SideBar />
-        <section className="flex flex-col flex-grow w-full items-center">
+        <section className="flex flex-col flex-grow w-full items-center pl-4 pr-4">
           <ToolBar
             titulo="Proveedores"
             onRegister={handleRegister}

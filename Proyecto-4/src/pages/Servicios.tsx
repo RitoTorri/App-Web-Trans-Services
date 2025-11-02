@@ -3,6 +3,8 @@ import type { Servicio } from "../types/models";
 import type { Item } from "../types/models";
 import Table from "../components/Table/Table";
 import ToolBar from "../components/Table/ToolBar";
+import Modal from "../components/Modal/Modal";
+import { useState } from "react";
 
 const ejemploServicios: Servicio[] = [
   {
@@ -29,6 +31,25 @@ function Servicios() {
     { key: "actions", header: "Acciones" },
   ];
 
+  const userRegistro = (
+    //Logica para el envío del formulario
+    <button className="btn bg-blue-500 hover:bg-blue-600 text-white">
+      Registrar
+    </button>
+  )
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleOpenModal = () => {
+      setIsModalOpen(true);
+    };
+  
+    const handleCloseModal = () => {
+      setIsModalOpen(false);
+    };
+
+    
+
   const handleEdit = (item: Item) => {
     console.log("Editar");
     item;
@@ -47,14 +68,22 @@ function Servicios() {
 
   return (
     <>
-      <main className="flex">
+      <main className="min-h-screen">
         <SideBar />
-        <section className="flex flex-col flex-grow w-full  items-center">
+        <section className="flex flex-col flex-grow w-full items-center pl-4 pr-4">
           <ToolBar
             titulo="Servicios Prestados"
             onSearch={handleSearch}
-            onRegister={handleRegister}
+            onRegister={handleOpenModal}
           />
+          <Modal
+            isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        titulo="Registrar Nuevo Servicio"
+        acciones={userRegistro} 
+          >
+            <h1>ha</h1>
+          </Modal>
           <Table data={servicio} columnas={columnas} onEdit={handleEdit} />
         </section>
       </main>

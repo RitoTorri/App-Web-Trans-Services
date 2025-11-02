@@ -18,8 +18,8 @@ function Table({
 
   return (
     <>
-      <div className="overflow-x-auto shadow-lg  rounded-box border border-gray-400  bg-base-100 ">
-        <table className="table table-auto divide-y divide-gray-200 w-5xl">
+      <div className="w-full  overflow-x-auto shadow-lg  rounded-box border border-gray-400  bg-base-100 ">
+        <table className="table table-auto divide-y divide-gray-200 w-full">
           <thead className="bg-gray-50">
             <tr>
               {columnas.map((col: ConfiguracionColumna) => (
@@ -48,7 +48,7 @@ function Table({
                       <div className="flex space-x-2 justify-center">
                         <button
                           onClick={() => onEdit(item)}
-                          className="btn text-indigo-600 hover:text-indigo-900 font-medium transition-colors"
+                          className="btn  text-indigo-600 hover:text-indigo-900 font-medium transition-colors"
                           title="Editar"
                         >
                           <svg
@@ -69,7 +69,7 @@ function Table({
                         {onDelete && (
                           <button
                             onClick={() => onDelete(item)}
-                            className="btn text-red-600 hover:text-red-900 font-medium transition-colors"
+                            className="btn bg-red-500 text-white hover:bg-red-600 font-medium transition-colors"
                             title="Eliminar"
                           >
                             <svg
