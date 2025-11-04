@@ -1,5 +1,4 @@
 import Table from "../components/Table/Table";
-import SideBar from "../components/SideBar";
 import type { Item, Empleado } from "../types/models";
 import ToolBar from "../components/Table/ToolBar";
 import { useState } from "react";
@@ -13,7 +12,7 @@ const ejemploEmpleados: Empleado[] = [
     cedula: "31161696",
     rol: "Chofer",
     telefono: "04164537225",
-    correo: "yonathannieles011@gmail.com"
+    correo: "yonathannieles011@gmail.com",
   },
   {
     id: 2,
@@ -22,7 +21,7 @@ const ejemploEmpleados: Empleado[] = [
     cedula: "32150123",
     rol: "Contador",
     telefono: "04262839127",
-    correo: "jesus@gmail.com"
+    correo: "jesus@gmail.com",
   },
   {
     id: 3,
@@ -31,7 +30,7 @@ const ejemploEmpleados: Empleado[] = [
     cedula: "27198676",
     rol: "Mecanico",
     telefono: "04142730127",
-    correo: "juanperdomoo@gmail.com"
+    correo: "juanperdomoo@gmail.com",
   },
 ];
 
@@ -45,14 +44,31 @@ function Empleados() {
     </button>
   );
 
+  const userEdit = (
+    //Logica para el envío del formulario
+    <button className="btn bg-blue-500 hover:bg-blue-600 text-white">
+      Editar
+    </button>
+  );
+
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [isModalOpenEdit, setIsModalOpenEdit] = useState(false);
 
   const handleOpenModal = () => {
     setIsModalOpen(true);
   };
 
+  const handleOpenModalEdit = () => {
+    setIsModalOpenEdit(true);
+  };
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
+  };
+
+  const handleCloseModalEdit = () => {
+    setIsModalOpenEdit(false);
   };
 
   const columnas = [
@@ -75,11 +91,6 @@ function Empleados() {
     item;
   };
 
-  const handleRegister = () => {
-    console.log("Registrar");
-    //Logica para el formulario de registro
-  };
-
   const handleSearch = () => {
     console.log("Buscar");
   };
@@ -87,7 +98,6 @@ function Empleados() {
   return (
     <>
       <main className="min-h-screen ">
-        <SideBar />
         <section className="flex flex-col flex-grow items-center w-full pl-4 pr-4">
           <ToolBar
             titulo="Empleados"
@@ -98,7 +108,7 @@ function Empleados() {
             data={empleados}
             columnas={columnas}
             onDelete={handleDelete}
-            onEdit={handleEdit}
+            onEdit={handleOpenModalEdit}
           />
         </section>
       </main>
@@ -168,15 +178,80 @@ function Empleados() {
           </div>
           <div>
             <label
-              htmlFor="rol"
+              htmlFor="numero"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
               Número de telefono:
             </label>
             <input
               type="text"
-              name="rol"
+              name="numero"
               placeholder="Ingrese el Número de Telefono"
+              className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="correo"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Correo electrónico:
+            </label>
+            <input
+              type="email"
+              name="correo"
+              placeholder="Ingrese el Correo Electrónico"
+              className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+            />
+          </div>
+        </form>
+      </Modal>
+      <Modal
+        isOpen={isModalOpenEdit}
+        onClose={handleCloseModalEdit}
+        titulo="Editar Empleado"
+        acciones={userEdit}
+      >
+        <form action="" className="grid grid-cols-2 gap-3">
+          <div>
+            <label
+              htmlFor="nombre"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Nombre:
+            </label>
+            <input
+              type="text"
+              name="nombre"
+              placeholder="Ingrese el Nombre"
+              className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="apellido"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Apellido:
+            </label>
+            <input
+              type="text"
+              name="apellido"
+              placeholder="Ingrese el Apellido"
+              className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="cedula"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Cédula:
+            </label>
+            <input
+              type="text"
+              name="cedula"
+              placeholder="Ingrese la Cédula"
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
           </div>
@@ -185,11 +260,39 @@ function Empleados() {
               htmlFor="rol"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
+              Rol:
+            </label>
+            <input
+              type="text"
+              name="rol"
+              placeholder="Ingrese el Rol"
+              className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="numero"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Número de telefono:
+            </label>
+            <input
+              type="text"
+              name="numero"
+              placeholder="Ingrese el Número de Telefono"
+              className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="correo"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Correo electrónico:
             </label>
             <input
               type="email"
-              name="rol"
+              name="correo"
               placeholder="Ingrese el Correo Electrónico"
               className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />

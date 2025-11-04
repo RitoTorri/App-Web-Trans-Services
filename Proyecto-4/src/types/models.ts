@@ -19,6 +19,8 @@ export interface Servicio extends Item{
   hora_finalizacion: string;
   precio: string;
   estado_pago: string;
+  salida: string;
+  llegada: string;
 }
 
 export interface Cliente extends Item{
@@ -30,8 +32,14 @@ export interface Cliente extends Item{
 }
 
 export interface Proveedor extends Item{
-  id_factura: string;
-  fecha_compra: string;
-  descripcion: string;
-  total: string;
+  nombre: string;
+  rif: string;
+  contacto: string;
+}
+
+export interface Vehiculo extends Item{
+  placa: string;
+  total_asientos: string;
+  tipo: string;
+  
 }

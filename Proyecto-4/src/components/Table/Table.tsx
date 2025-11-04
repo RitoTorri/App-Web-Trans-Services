@@ -1,6 +1,32 @@
 import type { ConfiguracionColumna, TableProps } from "./Table.types";
 import type { Item } from "../../types/models";
 
+// utils/paymentStyles.ts (o directamente en tu componente)
+
+type PaymentStatus = 'No Pagado' | 'Pagado' | 'Pendiente';
+
+/**
+ * Devuelve las clases Tailwind para el color de fondo y texto del estado de pago.
+ * @param status El estado de pago ('No Pagado', 'Pagado', 'Pendiente').
+ * @returns Cadena de clases Tailwind.
+ */
+export const getStatusClasses = (status: PaymentStatus): string => {
+  switch (status) {
+    case 'Pagado':
+      
+      return 'bg-green-100 text-green-800 border-green-400';
+    case 'Pendiente':
+      
+      return 'bg-yellow-100 text-yellow-800 border-yellow-400';
+    case 'No Pagado':
+      
+      return 'bg-red-100 text-red-800 border-red-400';
+    default:
+      
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
 function Table({
   data,
   columnas,
@@ -85,6 +111,16 @@ function Table({
                           </button>
                         )}
                       </div>
+                    ) : col.key === "estado_pago" ? (
+                      <span
+                      className={`
+                px-3 py-1 inline-flex text-sm leading-5 font-semibold 
+                rounded-lg border 
+                ${getStatusClasses(item[col.key])}
+              `}
+                      >
+                        {item[col.key] as string}
+                      </span>
                     ) : (
                       item[col.key]
                     )}

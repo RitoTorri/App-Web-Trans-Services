@@ -1,11 +1,9 @@
-import SideBar from "../components/SideBar";
 import foto from "../assets/icono-usuario.png";
 
 function PaginaInicio() {
   return (
     <>
       <main className="flex min-h-screen">
-        <SideBar />
         <div className="flex-1 flex mt-14 justify-center">
           <div className="bg-gray-50 w-5xl h-64  relative rounded-sm shadow-lg border flex items-end">
             <div className="bg-gray-800 px-6 py-2 w-xl h-12 absolute -top-3 left-1/2 transform  -translate-x-1/2  rounded-sm shadow-sm flex justify-center items-center">

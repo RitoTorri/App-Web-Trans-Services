@@ -2,7 +2,7 @@ import { Link, NavLink } from "react-router-dom";
 
 function SideBar() {
   const getNavLinkClass = ({ isActive }: { isActive: boolean }) => {
-    const baseClasses = "px-3 py-2 rounded flex items-center gap-5";
+    const baseClasses = "px-3 py-2 rounded flex items-center gap-5 transi";
 
     if (isActive) {
       return `${baseClasses} bg-gray-700 border-r-4  `; 
@@ -12,7 +12,7 @@ function SideBar() {
   };
   return (
     <>
-      <aside className="fixed top-0 left-0 w-68  flex-none bg-gray-800 text-white p-4 space-y-4 h-screen shadow-xl flex flex-col">
+      <aside className="fixed top-0 left-0 lg:w-64 xl:w-68  flex-none bg-gray-800 text-white p-4 space-y-4 h-screen shadow-xl flex flex-col z-40">
         <Link
           to="/paginainicio"
           className="text-2xl font-bold text-center p-5 border-b-2"
@@ -102,7 +102,7 @@ function SideBar() {
             >
               <path d="m8 0 6.61 3h.89a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5H15v7a.5.5 0 0 1 .485.38l.5 2a.498.498 0 0 1-.485.62H.5a.498.498 0 0 1-.485-.62l.5-2A.5.5 0 0 1 1 13V6H.5a.5.5 0 0 1-.5-.5v-2A.5.5 0 0 1 .5 3h.89zM3.777 3h8.447L8 1zM2 6v7h1V6zm2 0v7h2.5V6zm3.5 0v7h1V6zm2 0v7H12V6zM13 6v7h1V6zm2-1V4H1v1zm-.39 9H1.39l-.25 1h13.72z" />
             </svg>
-            Cuentas Pendientes
+            Cuentas
           </NavLink>
 
           <NavLink
