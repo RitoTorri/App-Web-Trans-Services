@@ -12,12 +12,21 @@ function SideBar() {
   };
   return (
     <>
-      <aside className="fixed top-0 left-0 lg:w-64 xl:w-68  flex-none bg-gray-800 text-white p-4 space-y-4 h-screen shadow-xl flex flex-col z-40">
+      <aside className="fixed top-0 left-0 lg:w-64 xl:w-68  flex-none bg-gray-800 text-white p-4 space-y-4 h-screen shadow-xl flex flex-col z-40 hidden sm:flex">
         <Link
           to="/paginainicio"
-          className="text-2xl font-bold text-center p-5 border-b-2"
+          className="text-2xl font-bold text-center p-5 border-b-2 flex gap-2 items-center"
         >
-          Trans Services
+          Trans Services 
+          <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          width="16" 
+          height="16" 
+          fill="currentColor" 
+          className="bi bi-bus-front-fill" 
+          viewBox="0 0 16 16">
+  <path d="M16 7a1 1 0 0 1-1 1v3.5c0 .818-.393 1.544-1 2v2a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5V14H5v1.5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-2a2.5 2.5 0 0 1-1-2V8a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1V2.64C1 1.452 1.845.408 3.064.268A44 44 0 0 1 8 0c2.1 0 3.792.136 4.936.268C14.155.408 15 1.452 15 2.64V4a1 1 0 0 1 1 1zM3.552 3.22A43 43 0 0 1 8 3c1.837 0 3.353.107 4.448.22a.5.5 0 0 0 .104-.994A44 44 0 0 0 8 2c-1.876 0-3.426.109-4.552.226a.5.5 0 1 0 .104.994M8 4c-1.876 0-3.426.109-4.552.226A.5.5 0 0 0 3 4.723v3.554a.5.5 0 0 0 .448.497C4.574 8.891 6.124 9 8 9s3.426-.109 4.552-.226A.5.5 0 0 0 13 8.277V4.723a.5.5 0 0 0-.448-.497A44 44 0 0 0 8 4m-3 7a1 1 0 1 0-2 0 1 1 0 0 0 2 0m8 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0m-7 0a1 1 0 0 0 1 1h2a1 1 0 1 0 0-2H7a1 1 0 0 0-1 1"/>
+</svg>
         </Link>
         <nav className="flex flex-col space-y-4">
           <NavLink
@@ -140,6 +149,7 @@ function SideBar() {
           </NavLink>
         </nav>
 
+<div className="mt-auto flex flex-col gap-2">
         <div className="mt-auto">
           <Link
             to="/"
@@ -164,6 +174,33 @@ function SideBar() {
             </svg>
             Cerrar Sesión
           </Link>
+        </div>
+
+                <div className="mt-auto">
+          <Link
+            to="/"
+            className="hover:bg-gray-700 px-3 py-2 rounded flex  items-center gap-5"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              fill="currentColor"
+              className="bi bi-box-arrow-in-left"
+              viewBox="0 0 16 16"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M10 3.5a.5.5 0 0 0-.5-.5h-8a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-2a.5.5 0 0 1 1 0v2A1.5 1.5 0 0 1 9.5 14h-8A1.5 1.5 0 0 1 0 12.5v-9A1.5 1.5 0 0 1 1.5 2h8A1.5 1.5 0 0 1 11 3.5v2a.5.5 0 0 1-1 0z"
+              />
+              <path
+                fill-rule="evenodd"
+                d="M4.146 8.354a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H14.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708z"
+              />
+            </svg>
+            cambiar usuario
+          </Link>
+        </div>
         </div>
       </aside>
     </>
