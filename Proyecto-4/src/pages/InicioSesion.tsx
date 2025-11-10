@@ -95,9 +95,25 @@ function InicioSesion() {
 
   return (
     <>
-      <main className="flex h-screen justify-center items-center bg-gray-800 ">
-        <section className="w-xl h-130 flex flex-col justify-center items-center bg-white rounded-lg ">
-          <h1 className="text-4xl mb-15 ">Iniciar Sesión</h1>
+      <main className="flex h-screen justify-center items-center bg-white ">
+        <section className="w-xl flex flex-col justify-center items-center bg-slate-700 rounded-lg p-8 relative mt-16 s">
+
+          <div className="flex justify-center mb-8 w-60 h-60 flex-shrink-0 mx-auto rounded-full border-4 bg-sky-500 shadow-lg p-0.5 absolute -top-32 left-1/2 transform -translate-x-1/2 z-10" >
+            <img 
+              // ubicacion de la imagen
+              src="https://i.pinimg.com/736x/14/20/fd/1420fdb2c1b84a55bc9a61e3050b0fa5.jpg" 
+              alt="Logo de la Aplicación" 
+              className="rounded-full w-full max-w-xs object-cover" 
+              // En caso de erro
+              onError={(e) => {
+                e.currentTarget.onerror = null; 
+                e.currentTarget.src = "https://placehold.co/400x100/EF4444/ffffff?text=LOGO+FALLO";
+                e.currentTarget.className = "bg-red-500 p-4 rounded-lg w-full max-w-xs object-cover";
+              }}
+            />
+          </div>
+          <div className="mt-32">
+          <h1 className="text-4xl mb-15 text-center uppercase font-extrabold font-sans text-white">Iniciar Sesión</h1>
           <form
             onSubmit={manejadorSubmit}
             className="flex flex-col w-lg gap-2 "
@@ -105,7 +121,7 @@ function InicioSesion() {
             <div className="mb-4">
               <label
                 htmlFor="usuario"
-                className="block text-sm font-medium text-gray-700 mb-1 transition-all"
+                className="block text-sm font-medium text-white mb-1 transition-all"
                 id="labelnombre"
               >
                 Usuario:
@@ -115,7 +131,7 @@ function InicioSesion() {
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="currentColor"
-                  className="bi bi-person absolute left-3 top-1/2 text-gray-400 h-6 w-6 "
+                  className="bi bi-person absolute left-3 top-1/2 text-white h-6 w-6 "
                   viewBox="0 0 16 16"
                   style={{
                     top: "45%",
@@ -126,7 +142,7 @@ function InicioSesion() {
                 </svg>
                 <input
                   type="text"
-                  className={`border border-gray-400 rounded-md mb-2 shadow-xs w-full py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in
+                  className={`border border-white text-white rounded-md mb-2 shadow-xs w-full py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in
                     ${
                       isUserNameError
                         ? "border-red-500 ring-red-500 "
@@ -143,7 +159,7 @@ function InicioSesion() {
             <div>
               <label
                 htmlFor="contraseña"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm text-white font-medium text-gray-700 mb-1"
               >
                 Contraseña:
               </label>
@@ -166,7 +182,7 @@ function InicioSesion() {
                 </svg>
                 <input
                   type="password"
-                  className={`border border-gray-400 rounded-md mb-2 shadow-xs w-full py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in
+                  className={`border border-white text-white rounded-md mb-2 shadow-xs w-full py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in
                     ${
                       isPasswordError
                         ? "border-red-500 ring-red-500 "
@@ -188,7 +204,7 @@ function InicioSesion() {
             </div>
             <button
               disabled={isLoading}
-              className="btn btn-outline shadow-xs w-2/3 self-center m-5 text-xl text-white bg-gray-800 hover:bg-gray-900"
+              className="btn btn-outline shadow-xs w-2/3 self-center m-5 text-xl text-white bg-sky-600"
             >
               {isLoading ? (
                 <div className="w-full flex items-center justify-center py-6">
@@ -198,7 +214,11 @@ function InicioSesion() {
                 "Acceder"
               )}
             </button>
+            <div className="text-center text-xs text-white mt-5">
+                <p>App-Web-Trans-Services / Proyecto-4</p>
+            </div>
           </form>
+          </div>
         </section>
       </main>
     </>
