@@ -8,11 +8,11 @@ function ToolBar({ titulo, onSearch, onRegister }: ToolBarProps) {
 
   return (
     <>
-      <div className="flex justify-between w-full items-center mb-5 mt-5 p-4 bg-white shadow-md rounded-lg  border border-gray-400">
-        <h1 className="text-2xl font-bold text-gray-800">{titulo}</h1>
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center w-full mb-5 mt-5 p-4 bg-white shadow-md rounded-lg border border-gray-400">
+        <h1 className="text-2xl font-bold text-gray-800 mb-4 md:mb-0">{titulo}</h1>
 
-        <div className="flex items-center space-x-4">
-          <div className="relative min-w-64">
+        <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
+          <div className="relative w-full md:min-w-64">
             <input
               type="text"
               placeholder="Buscar..."
