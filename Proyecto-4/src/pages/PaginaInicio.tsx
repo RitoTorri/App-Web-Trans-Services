@@ -1,4 +1,3 @@
-import foto from "../assets/icono-usuario.png";
 import { VentasGrafica } from "../components/VentasGrafica";
 import TasasDivisas from "../components/TasasDivisas";
 
@@ -6,10 +5,9 @@ function PaginaInicio() {
   return (
     <>
       <main className="min-h-screen">
-        
         <section className="p-4">
-          <TasasDivisas/>
-        <VentasGrafica/>
+          <TasasDivisas />
+          <VentasGrafica />
         </section>
       </main>
     </>

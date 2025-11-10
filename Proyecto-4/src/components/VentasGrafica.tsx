@@ -28,7 +28,7 @@ const datos: VentaData[] = [
 export function VentasGrafica() {
   return (
     // ResponsiveContainer se asegura de que el gráfico se ajuste a su contenedor
-    <div className="p-5 rounded-lg shadow-sm bg-white h-90">
+    <div className="p-5 rounded-lg shadow-sm bg-white h-90 border border-gray-400">
       {/* 💡 Usa clases de Tailwind para estilizar el contenedor (div) */}
       <h2 className="text-xl pl-18 font-medium text-gray-800">Resumen Financiero Semestral</h2>
       

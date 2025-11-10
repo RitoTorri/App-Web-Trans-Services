@@ -40,10 +40,10 @@ function TasasDivisas() {
 
   if (isLoading) {
     return (
-        <div className="w-full flex items-center justify-center py-6">
-+        <span className="loading loading-spinner loading-xl"></span>
-+      </div>
-    )
+      <div className="w-full flex items-center justify-center py-6">
+        <span className="loading loading-spinner loading-xl"></span>
+      </div>
+    );
   }
 
   if (error) {
@@ -56,7 +56,7 @@ function TasasDivisas() {
         {exchangeData && (
           <>
             <section className="grid grid-cols-2 w-full gap-10 mb-5">
-              <div className="flex flex-col bg-white shadow-sm rounded-lg h-40 items-center justify-center gap-4 ">
+              <div className="flex flex-col bg-white shadow-sm rounded-lg h-40 items-center justify-center gap-4 border border-gray-400">
                 <span className="font-semibold text-gray-800 text-2xl">
                   Tasa Actual (USD)
                 </span>
@@ -67,7 +67,7 @@ function TasasDivisas() {
                   Valor del Bolivar en USD
                 </span>
               </div>
-              <div className="flex flex-col bg-white shadow-sm rounded-lg h-40 items-center justify-center gap-4">
+              <div className="flex flex-col bg-white shadow-sm rounded-lg h-40 items-center justify-center gap-4 border border-gray-400">
                 <span className="font-semibold text-gray-800 text-2xl">
                   Tasa Actual (EUR)
                 </span>

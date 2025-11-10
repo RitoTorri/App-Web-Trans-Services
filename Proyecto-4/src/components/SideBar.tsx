@@ -1,14 +1,20 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 
 function SideBar() {
+  const navigate = useNavigate();
   const getNavLinkClass = ({ isActive }: { isActive: boolean }) => {
-    const baseClasses = "px-3 py-2 rounded flex items-center gap-5 transi";
+    const baseClasses = "px-3 py-2 rounded flex items-center gap-5";
 
     if (isActive) {
-      return `${baseClasses} bg-gray-700 border-r-4  `; 
+      return `${baseClasses} bg-gray-700 border-r-4`;
     } else {
       return `${baseClasses} hover:bg-gray-700`;
     }
+  };
+
+  const handleCerrar = () => {
+    localStorage.removeItem("token");
+    navigate("/login", { replace: true });
   };
   return (
     <>
@@ -20,10 +26,7 @@ function SideBar() {
           Trans Services
         </Link>
         <nav className="flex flex-col space-y-4">
-          <NavLink
-            to="/empleados"
-            className={getNavLinkClass}
-          >
+          <NavLink to="/empleados" className={getNavLinkClass}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"
@@ -37,10 +40,7 @@ function SideBar() {
             </svg>
             Empleados
           </NavLink>
-          <NavLink
-            to="/clientes"
-            className={getNavLinkClass}
-          >
+          <NavLink to="/clientes" className={getNavLinkClass}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"
@@ -53,10 +53,7 @@ function SideBar() {
             </svg>
             Clientes
           </NavLink>
-          <NavLink
-            to="/servicios"
-            className={getNavLinkClass}
-          >
+          <NavLink to="/servicios" className={getNavLinkClass}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"
@@ -70,10 +67,7 @@ function SideBar() {
             Servicios Prestados
           </NavLink>
 
-          <NavLink
-            to="/nominas"
-            className={getNavLinkClass}
-          >
+          <NavLink to="/nominas" className={getNavLinkClass}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"
@@ -88,10 +82,7 @@ function SideBar() {
             Nóminas
           </NavLink>
 
-          <NavLink
-            to="/cuentas"
-            className={getNavLinkClass}
-          >
+          <NavLink to="/cuentas" className={getNavLinkClass}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"
@@ -105,10 +96,7 @@ function SideBar() {
             Cuentas
           </NavLink>
 
-          <NavLink
-            to="/vehiculos"
-            className={getNavLinkClass}
-          >
+          <NavLink to="/vehiculos" className={getNavLinkClass}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"
@@ -122,10 +110,7 @@ function SideBar() {
             Vehículos
           </NavLink>
 
-          <NavLink
-            to="/proveedores"
-            className={getNavLinkClass}
-          >
+          <NavLink to="/proveedores" className={getNavLinkClass}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"
@@ -141,9 +126,9 @@ function SideBar() {
         </nav>
 
         <div className="mt-auto">
-          <Link
-            to="/"
-            className="hover:bg-gray-700 px-3 py-2 rounded flex  items-center gap-5"
+          <button
+            onClick={handleCerrar}
+            className="cursor-pointer w-full hover:bg-gray-700 px-3 py-2 rounded flex  items-center gap-5"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -163,7 +148,7 @@ function SideBar() {
               />
             </svg>
             Cerrar Sesión
-          </Link>
+          </button>
         </div>
       </aside>
     </>
