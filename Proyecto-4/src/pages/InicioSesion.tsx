@@ -68,8 +68,10 @@ function InicioSesion() {
 
       const data = await response.json();
 
+      
+
       if (response.ok) {
-        localStorage.setItem("token", data.token);
+        localStorage.setItem("token", data.details.token);
         navigate("/paginainicio", { replace: true });
       } else {
         setState((prevState) => ({
