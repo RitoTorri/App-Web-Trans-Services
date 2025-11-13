@@ -3,7 +3,7 @@ import type { Item, Empleado } from "../types/models";
 import ToolBar from "../components/Table/ToolBar";
 import React, { useEffect, useState } from "react";
 import Modal from "../components/Modal/Modal";
-import { apiRegistrar, apiObtener,apiElminar } from "../services/apiEmpleados";
+import { apiRegistrar, apiObtener,apiElminar, apiEditar } from "../services/apiEmpleados";
 
 interface Contact {
   contact_info: string;
@@ -65,12 +65,38 @@ const transformarRegistros = (registrosAPI: Empleado[]): Item[] => {
   }));
 };
 
+interface EmpleadoEditarState{
+  id:number | null;
+  name:string;
+  lastname: string;
+  ci:string;
+  rol:string;
+  telefono: string;
+  correo: string;
+  error: boolean;
+  errorMsg: string;
+}
+
+const initialStateEmpleadosEditar:  EmpleadoEditarState ={
+  id: null,
+  name: "",
+  lastname: "",
+  ci: "",
+  rol: "",
+  telefono: "",
+  correo: "",
+  error: false,
+  errorMsg: "",
+}
+
 function Empleados() {
   const [state, setState] = useState<RegisterState>(initialState);
   const [stateEmpleados, setStateEmpleados] = useState<EmpleadosState>(
     initialStateEmpleados
   );
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const [empleadoEditar, setEmpleadoEditar] = useState<EmpleadoEditarState>(initialStateEmpleadosEditar);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -84,6 +110,22 @@ function Empleados() {
       error: false,
       errorMsg: "",
     }));
+  };
+
+  const handleInputChangeEdit = (e: React.ChangeEvent<HTMLInputElement>) =>{
+    const{name, value} = e.target;
+
+    setEmpleadoEditar((prevState) =>({
+        ...prevState,
+        [name]: value,
+        error: false,
+        errorMsg: "",
+    }));
+
+    setCamposModificados((prevFields) => ({
+      ...prevFields,
+      [name]: value,
+    }))
   };
 
   const accessToken = localStorage.getItem("token");
@@ -236,6 +278,42 @@ function Empleados() {
     }
   };
 
+  const manejadorSubmitEditar = async (e: React.FormEvent)=>{
+    e.preventDefault();
+
+    setEmpleadoEditar((prevState) => ({...prevState, error: false, errorMsg: ""}));
+
+    if(Object.keys(camposModificados).length === 0){
+      setEmpleadoEditar((prev) => ({
+        ...prev,
+        error: true,
+        errorMsg: "No se han detectado cambios"
+      }))
+      return;
+    }
+
+    if(empleadoEditar.id !== null){
+    await editarRegistro(empleadoEditar.id, camposModificados);
+  }
+
+    if(
+      !empleadoEditar.name ||
+      !empleadoEditar.lastname ||
+      !empleadoEditar.ci ||
+      !empleadoEditar.rol 
+
+    ){
+      setEmpleadoEditar((prev) => ({
+        ...prev,
+        error: true,
+        errorMsg: "Por favor, complete los campos obligatorios."
+      }));
+      return;
+    }
+  }
+
+ 
+
   const userRegistro = (
     //Logica para el envío del formulario
     <button
@@ -248,7 +326,7 @@ function Empleados() {
 
   const userEdit = (
     //Logica para el envío del formulario
-    <button className="btn bg-blue-500 hover:bg-blue-600 text-white">
+    <button form="FormularioEditarEmpleado" className="btn bg-blue-500 hover:bg-blue-600 text-white">
       Editar
     </button>
   );
@@ -259,11 +337,24 @@ function Empleados() {
 
   const [isModalOpenDelete, setIsModalOpenDelete] = useState(false);
 
+  const [camposModificados, setCamposModificados] = useState<Partial<EmpleadoEditarState>>({});
+
   const handleOpenModal = () => {
     setIsModalOpen(true);
   };
 
-  const handleOpenModalEdit = () => {
+  const handleOpenModalEdit = (empleado: Item) => {
+    setEmpleadoEditar({
+      id: empleado.id,
+      name: empleado.name,
+      lastname: empleado.lastname,
+      ci: empleado.ci,
+      rol: empleado.rol,
+      telefono: empleado.telefono,
+      correo: empleado.correo,
+      error: false,
+      errorMsg: "",
+    })
     setIsModalOpenEdit(true);
   };
 
@@ -337,6 +428,60 @@ function Empleados() {
       console.error("Error de conexion", error)
     }
   }
+
+  const editarRegistro = async (idEditar: number, datosEditar: Partial<{name: string, lastname: string, ci: string, rol:string}>) =>{
+    if(!accessToken){
+      setStateEmpleados(prev => ({...prev, error:true, errorMsg:"Token no encontrado"}))
+      return;
+    }
+      console.log(datosEditar)
+    
+    try{
+      const apiEditarRegistro = `${apiEditar}${idEditar}`;
+
+      
+
+        const response = await fetch(apiEditarRegistro,{
+          method:"PATCH",
+          headers:{
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`
+          },
+          body: JSON.stringify(datosEditar),
+        });
+
+        const data = await response.json();
+
+        console.log(data)
+        
+        if(response.ok && data.success){
+          console.log("Registro editado.")
+          handleCloseModalEdit();
+          setSuccessMessage("Empleado editado con exito.");
+          listarRegistros();
+          setCamposModificados({});
+          setTimeout(() =>{
+            setSuccessMessage(null);
+          }, 3000)
+        }else{
+          console.error("Error en la edicion: ", data.message);
+          setEmpleadoEditar(prev => ({
+            ...prev,
+            error: true,
+            errorMsg: data.message || "Error al intentar editar"
+          }))
+        }
+    }catch(error){
+      console.error("Error de conexion", error);
+      setEmpleadoEditar(prev => ({
+        ...prev,
+        error: true,
+        errorMsg: "No se puede conectar al servidor"
+      }))
+    }
+  }
+
+   
 
   
   const userDelete = (
@@ -500,10 +645,10 @@ function Empleados() {
       <Modal
         isOpen={isModalOpenEdit}
         onClose={handleCloseModalEdit}
-        titulo="Editar Empleado"
+        titulo={`Editar empleado`}
         acciones={userEdit}
       >
-        <form action="" className="grid grid-cols-2 gap-3">
+        <form onSubmit={manejadorSubmitEditar} id="FormularioEditarEmpleado" className="grid grid-cols-2 gap-3">
           <div>
             <label
               htmlFor="nombre"
@@ -513,7 +658,9 @@ function Empleados() {
             </label>
             <input
               type="text"
-              name="nombre"
+              name="name"
+              value={empleadoEditar.name}
+              onChange={handleInputChangeEdit}
               placeholder="Ingrese el Nombre"
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
@@ -527,7 +674,9 @@ function Empleados() {
             </label>
             <input
               type="text"
-              name="apellido"
+              name="lastname"
+              value={empleadoEditar.lastname}
+              onChange={handleInputChangeEdit}
               placeholder="Ingrese el Apellido"
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
@@ -540,8 +689,10 @@ function Empleados() {
               Cédula:
             </label>
             <input
-              type="text"
-              name="cedula"
+              type="number"
+              name="ci"
+              value={empleadoEditar.ci}
+              onChange={handleInputChangeEdit}
               placeholder="Ingrese la Cédula"
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
@@ -556,6 +707,8 @@ function Empleados() {
             <input
               type="text"
               name="rol"
+              value={empleadoEditar.rol}
+              onChange={handleInputChangeEdit}
               placeholder="Ingrese el Rol"
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
@@ -569,7 +722,9 @@ function Empleados() {
             </label>
             <input
               type="text"
-              name="numero"
+              name="telefono"
+              value={empleadoEditar.telefono}
+              readOnly
               placeholder="Ingrese el Número de Telefono"
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
@@ -584,6 +739,8 @@ function Empleados() {
             <input
               type="email"
               name="correo"
+              value={empleadoEditar.correo}
+              readOnly
               placeholder="Ingrese el Correo Electrónico"
               className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
