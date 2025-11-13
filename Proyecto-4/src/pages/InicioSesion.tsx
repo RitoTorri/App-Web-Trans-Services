@@ -96,7 +96,7 @@ function InicioSesion() {
   return (
     <>
       <main className="flex h-screen justify-center items-center bg-white ">
-        <section className="w-xl flex flex-col justify-center items-center bg-slate-700 rounded-lg p-8 relative mt-16 s">
+        <section className="w-xl flex flex-col justify-center items-center bg-slate-700 rounded-lg p-8 relative mt-16 shadow-xl">
 
           <div className="flex justify-center mb-8 w-60 h-60 flex-shrink-0 mx-auto rounded-full border-4 bg-sky-500 shadow-lg p-0.5 absolute -top-32 left-1/2 transform -translate-x-1/2 z-10" >
             <img 
@@ -116,7 +116,7 @@ function InicioSesion() {
           <h1 className="text-4xl mb-15 text-center uppercase font-extrabold font-sans text-white">Iniciar Sesión</h1>
           <form
             onSubmit={manejadorSubmit}
-            className="flex flex-col w-lg gap-2 "
+            className="flex flex-col w-lg gap-2"
           >
             <div className="mb-4">
               <label
@@ -131,7 +131,7 @@ function InicioSesion() {
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="currentColor"
-                  className="bi bi-person absolute left-3 top-1/2 text-white h-6 w-6 "
+                  className="bi bi-person absolute left-3 top-1/2 text-gray-800 h-6 w-6 "
                   viewBox="0 0 16 16"
                   style={{
                     top: "45%",
@@ -142,7 +142,7 @@ function InicioSesion() {
                 </svg>
                 <input
                   type="text"
-                  className={`border border-white text-white rounded-md mb-2 shadow-xs w-full py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in
+                  className={`border border-white text-gray-800 bg-white  rounded-md mb-2 shadow-xs w-full py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in
                     ${
                       isUserNameError
                         ? "border-red-500 ring-red-500 "
@@ -168,7 +168,7 @@ function InicioSesion() {
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="currentColor"
-                  className="bi bi-lock absolute left-3 top-1/2  text-gray-400 h-6 w-6"
+                  className="bi bi-lock absolute left-3 top-1/2  text-gray-800 h-6 w-6"
                   viewBox="0 0 16 16"
                   style={{
                     top: "45%",
@@ -182,7 +182,7 @@ function InicioSesion() {
                 </svg>
                 <input
                   type="password"
-                  className={`border border-white text-white rounded-md mb-2 shadow-xs w-full py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in
+                  className={`border border-white text-gray-800 bg-white rounded-md mb-2 shadow-xs w-full py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in
                     ${
                       isPasswordError
                         ? "border-red-500 ring-red-500 "

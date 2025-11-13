@@ -47,7 +47,7 @@ function TasasDivisas() {
   }
 
   if (error) {
-    return <p>Error al cargar: {error}</p>;
+    return <p className="text-center m-5">Error al cargar.</p>;
   }
 
   return (
