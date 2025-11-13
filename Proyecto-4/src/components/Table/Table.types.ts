@@ -10,7 +10,7 @@ export interface TableProps {
   columnas: ConfiguracionColumna[];
 
   onEdit: (item: Item) => void;
-  onDelete?: (item: Item) => void;
+  onDelete?: (id: number) => void;
 
   emptyMessage?: string;
 }

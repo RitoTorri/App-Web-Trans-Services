@@ -7,8 +7,8 @@ type PaymentStatus = 'No Pagado' | 'Pagado' | 'Pendiente';
 
 /**
  * Devuelve las clases Tailwind para el color de fondo y texto del estado de pago.
- * @param status El estado de pago ('No Pagado', 'Pagado', 'Pendiente').
- * @returns Cadena de clases Tailwind.
+ * @param status 
+ * @returns
  */
 export const getStatusClasses = (status: PaymentStatus): string => {
   switch (status) {
@@ -94,7 +94,7 @@ function Table({
                         </button>
                         {onDelete && (
                           <button
-                            onClick={() => onDelete(item)}
+                            onClick={() => onDelete(item.id)}
                             className="btn bg-red-500 text-white hover:bg-red-600 font-medium transition-colors"
                             title="Eliminar"
                           >

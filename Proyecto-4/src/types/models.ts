@@ -1,16 +1,15 @@
-export interface Item {
-  id: number;
-  [key: string]: any;
-}
+  export interface Item {
+    id: number;
+    [key: string]: any;
+  }
 
-export interface Empleado extends Item {
-  nombre: string;
-  apellido: string;
-  cedula: string;
-  rol: string;
-  telefono: string;
-  correo: string;
-}
+  export interface Empleado extends Item {
+    nombre: string;
+    apellido: string;
+    cedula: string;
+    rol: string;
+    contacts: {contact_info: string}[];
+  }
 
 export interface Servicio extends Item{
   nombre_cliente: string;
