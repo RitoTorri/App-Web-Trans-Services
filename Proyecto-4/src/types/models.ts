@@ -42,3 +42,24 @@ export interface Vehiculo extends Item{
   tipo: string;
   
 }
+
+export interface Nomina extends Item{
+  id: number;
+  estado: string;
+  id_empleado: number;
+  inicio_periodo: Date;
+  //fin_periodo: Date;
+  salario_diario: number;
+  total_dias_pagados: number;
+ // salario_mensual: number;
+  //salario_integral: number;
+ // ganancias_anuales: number;
+ // cotizaciones: number; 
+ // seguridad_social: number;
+ // fondo_desempleo: number;
+ // fondo_ahorros: number;
+  //total_deducciones: number;
+  //salario_neto: number;
+ // creado_en: Date;
+ // actualizado_en: Date;
+}

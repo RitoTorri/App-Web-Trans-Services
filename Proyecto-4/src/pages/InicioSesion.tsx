@@ -68,10 +68,13 @@ function InicioSesion() {
 
       const data = await response.json();
 
-      
+      console.log(data)
 
       if (response.ok) {
         localStorage.setItem("token", data.details.token);
+        localStorage.setItem("username",data.details.user.username)
+        
+        console.log(localStorage.getItem('username'))
         navigate("/paginainicio", { replace: true });
       } else {
         setState((prevState) => ({

@@ -22,7 +22,6 @@ function Proveedores() {
     { key: "rif", header: "rif" },
     { key: "contacto", header: "Contacto" },
     {key:"actions", header: "Acciones"}
-   
   ];
 
   const userRegistro = (
@@ -96,7 +95,7 @@ function Proveedores() {
       onClose={handleCloseModal}
       titulo="Registrar Nuevo Proveedor"
       acciones={userRegistro}
-     >
+      >
       <form action="" className="grid grid-cols-2 gap-3">
         <div>
             <label
@@ -193,7 +192,6 @@ function Proveedores() {
           </div>
       </form>
       </Modal>
-     
     </>
   );
 }
