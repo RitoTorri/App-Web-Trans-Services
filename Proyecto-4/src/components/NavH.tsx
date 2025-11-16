@@ -4,11 +4,11 @@ function NavH() {
  const nombreUsuario = localStorage.getItem('username')
 
   return (
-    <div className="drawer">
+    <div className="drawer ">
       <input id="my-drawer-2" type="checkbox" className="drawer-toggle" />
-      <div className="drawer-content flex flex-col">
+      <div className="drawer-content flex flex-col ">
         {/* Navbar */}
-        <div className="navbar bg-base-300 w-full bg-white my-4 rounded-lg">
+        <div className="navbar w-full bg-white my-4 rounded-lg border border-gray-400 shadow-sm">
           <div className="flex-none lg:hidden">
             <label
               htmlFor="my-drawer-2"
@@ -32,12 +32,12 @@ function NavH() {
           </div>
           {/* Contenedor para el título y el icono, centrados verticalmente */}
 
-          <div className="navbar bg-base-300 w-full h-16 px-4 bg-white">
+          <div className="navbar w-full h-16 px-4 bg-white">
             <div className="mx-2 flex-1 flex items-center gap-2">
               {/* SVG del icono de bus, centrado al mismo nivel */}
               
-              <span className="text-3xl font-extrabold text-blue-700">
-                BIENVENIDO
+              <span className="text-3xl font-bold text-blue-600">
+                Bienvenido
               </span>
             </div>
           </div>

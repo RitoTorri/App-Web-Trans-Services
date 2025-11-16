@@ -5,6 +5,15 @@ import type { Item } from "../types/models";
 import Modal from "../components/Modal/Modal";
 import {useState} from "react";
 
+
+const formatDate = (date: Date | string): string =>{
+    if(date instanceof Date){
+        return date.toLocaleDateString();
+    }
+
+    return String(date);
+}
+
 const ejemploNominas: Nomina[] = [
 {
     id: 1,
@@ -33,10 +42,12 @@ function Nominas() {
 
 
     const columnas = [
-    { key: "id", header: "ID" },
+
     { key: "estado", header: "Estado" },
     { key: "id_empleado", header: "ID Empleado" },
-    { key: "inicio_periodo", header: "Inicio Periodo" },
+    { key: "inicio_periodo", header: "Inicio Periodo" ,
+        render: (item: Nomina) => formatDate(item.inicio_periodo),
+    },
     //{ key: "fin_periodo", header: "Fin Periodo" },
     { key: "salario_diario", header: "Salario Diario" },
     { key: "total_dias_pagados", header: "Días Pagados" },
@@ -88,9 +99,9 @@ const handleCloseModalEdit = () =>{
     setIsModalOpenEdit(false);
 }
 
-    const handleEdit = (item: Item) => {
+    const handleEdit = (idElminar: number) => {
     console.log("Editar");
-    item;
+    
 };
 
     const handleDelete = (item: Item) => {
@@ -102,6 +113,11 @@ const handleCloseModalEdit = () =>{
     console.log("Buscar");
 };
 
+    const formattedNomina = Nomina.map(item => ({
+        ...item,
+        inicio_periodo: formatDate(item.inicio_periodo)
+    }));
+
   return (
     <>
       <main className="min-h-screen">
@@ -112,12 +128,14 @@ const handleCloseModalEdit = () =>{
             onSearch={handleSearch}
           />
           <Table
-            data={Nomina}
+            data={formattedNomina}
             columnas={columnas}
+            
             onEdit={handleOpenModalEdit}
-            onDelete={handleDelete}
+            
           />
         </section>
+       
       </main>
 
     <Modal 
@@ -127,20 +145,7 @@ const handleCloseModalEdit = () =>{
       acciones={userRegistro}
       >
         <form action="" className="grid grid-cols-2 gap-3">
-    <div>
-        <label
-            htmlFor="id"
-            className="block text-sm font-medium text-gray-700 mb-1"
-        >
-            ID:
-        </label>
-        <input
-            type="text"
-            name="id"
-            placeholder="Ingrese el ID"
-            className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-        />
-    </div>
+   
     <div>
         <label
             htmlFor="estado"
@@ -160,7 +165,7 @@ const handleCloseModalEdit = () =>{
             htmlFor="id_empleado"
             className="block text-sm font-medium text-gray-700 mb-1"
         >
-            ID Empleado:
+            Empleado:
         </label>
         <input
             type="text"
@@ -177,7 +182,7 @@ const handleCloseModalEdit = () =>{
             Inicio Periodo:
         </label>
         <input
-            type="text"
+            type="date"
             name="inicio_periodo"
             placeholder="Ingrese el Inicio del Periodo"
             className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"

@@ -3,7 +3,12 @@ import type { Item, Empleado } from "../types/models";
 import ToolBar from "../components/Table/ToolBar";
 import React, { useEffect, useState } from "react";
 import Modal from "../components/Modal/Modal";
-import { apiRegistrar, apiObtener,apiElminar, apiEditar } from "../services/apiEmpleados";
+import {
+  apiRegistrar,
+  apiObtener,
+  apiElminar,
+  apiEditar,
+} from "../services/apiEmpleados";
 
 interface Contact {
   contact_info: string;
@@ -59,25 +64,27 @@ const transformarRegistros = (registrosAPI: Empleado[]): Item[] => {
   return registrosAPI.map((empleado) => ({
     ...empleado,
 
+    nombre_completo: `${empleado.nombre} ${empleado.apellido}`,
+
     correo: empleado.employee_contacts?.[0]?.contact_info || "N/A",
 
     telefono: empleado.employee_contacts?.[1]?.contact_info || "N/A",
   }));
 };
 
-interface EmpleadoEditarState{
-  id:number | null;
-  name:string;
+interface EmpleadoEditarState {
+  id: number | null;
+  name: string;
   lastname: string;
-  ci:string;
-  rol:string;
+  ci: string;
+  rol: string;
   telefono: string;
   correo: string;
   error: boolean;
   errorMsg: string;
 }
 
-const initialStateEmpleadosEditar:  EmpleadoEditarState ={
+const initialStateEmpleadosEditar: EmpleadoEditarState = {
   id: null,
   name: "",
   lastname: "",
@@ -87,7 +94,7 @@ const initialStateEmpleadosEditar:  EmpleadoEditarState ={
   correo: "",
   error: false,
   errorMsg: "",
-}
+};
 
 function Empleados() {
   const [state, setState] = useState<RegisterState>(initialState);
@@ -96,7 +103,12 @@ function Empleados() {
   );
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const [empleadoEditar, setEmpleadoEditar] = useState<EmpleadoEditarState>(initialStateEmpleadosEditar);
+  const [empleadoEditar, setEmpleadoEditar] = useState<EmpleadoEditarState>(
+    initialStateEmpleadosEditar
+  );
+
+  const [toDeleteId, setToDeleteId] = useState<number | null>(null);
+  const [nombreEmpleado, setNombreEmpleado] = useState<string | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -112,24 +124,25 @@ function Empleados() {
     }));
   };
 
-  const handleInputChangeEdit = (e: React.ChangeEvent<HTMLInputElement>) =>{
-    const{name, value} = e.target;
+  const handleInputChangeEdit = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
 
-    setEmpleadoEditar((prevState) =>({
-        ...prevState,
-        [name]: value,
-        error: false,
-        errorMsg: "",
+    setEmpleadoEditar((prevState) => ({
+      ...prevState,
+      [name]: value,
+      error: false,
+      errorMsg: "",
     }));
 
     setCamposModificados((prevFields) => ({
       ...prevFields,
       [name]: value,
-    }))
+    }));
   };
 
   const accessToken = localStorage.getItem("token");
 
+  //Funcion para elminar los registros
   const listarRegistros = async () => {
     if (!accessToken) {
       setStateEmpleados((prev) => ({
@@ -184,6 +197,7 @@ function Empleados() {
     }
   };
 
+  //Funcion para un nuevo registro
   const manejadorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -247,17 +261,16 @@ function Empleados() {
       if (response.ok) {
         console.log("Registrado con exito");
 
-        setSuccessMessage("Empleado registrado con éxito")
-        console.log("si")
-        setState(initialState)
+        setSuccessMessage("Empleado registrado con éxito");
+        console.log("si");
+        setState(initialState);
         handleCloseModal();
 
         listarRegistros();
 
-        setTimeout(() =>{
+        setTimeout(() => {
           setSuccessMessage(null);
-        }, 3000)
-
+        }, 3000);
       } else {
         const errorData = await response.json();
         console.log(errorData); // Intentar leer el error del servidor
@@ -278,41 +291,43 @@ function Empleados() {
     }
   };
 
-  const manejadorSubmitEditar = async (e: React.FormEvent)=>{
+  //Funcion para ediatar un registro
+  const manejadorSubmitEditar = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    setEmpleadoEditar((prevState) => ({...prevState, error: false, errorMsg: ""}));
+    setEmpleadoEditar((prevState) => ({
+      ...prevState,
+      error: false,
+      errorMsg: "",
+    }));
 
-    if(Object.keys(camposModificados).length === 0){
+    if (Object.keys(camposModificados).length === 0) {
       setEmpleadoEditar((prev) => ({
         ...prev,
         error: true,
-        errorMsg: "No se han detectado cambios"
-      }))
-      return;
-    }
-
-    if(empleadoEditar.id !== null){
-    await editarRegistro(empleadoEditar.id, camposModificados);
-  }
-
-    if(
-      !empleadoEditar.name ||
-      !empleadoEditar.lastname ||
-      !empleadoEditar.ci ||
-      !empleadoEditar.rol 
-
-    ){
-      setEmpleadoEditar((prev) => ({
-        ...prev,
-        error: true,
-        errorMsg: "Por favor, complete los campos obligatorios."
+        errorMsg: "No se han detectado cambios",
       }));
       return;
     }
-  }
 
- 
+    if (empleadoEditar.id !== null) {
+      await editarRegistro(empleadoEditar.id, camposModificados);
+    }
+
+    if (
+      !empleadoEditar.name ||
+      !empleadoEditar.lastname ||
+      !empleadoEditar.ci ||
+      !empleadoEditar.rol
+    ) {
+      setEmpleadoEditar((prev) => ({
+        ...prev,
+        error: true,
+        errorMsg: "Por favor, complete los campos obligatorios.",
+      }));
+      return;
+    }
+  };
 
   const userRegistro = (
     //Logica para el envío del formulario
@@ -326,7 +341,10 @@ function Empleados() {
 
   const userEdit = (
     //Logica para el envío del formulario
-    <button form="FormularioEditarEmpleado" className="btn bg-blue-500 hover:bg-blue-600 text-white">
+    <button
+      form="FormularioEditarEmpleado"
+      className="btn bg-blue-500 hover:bg-blue-600 text-white"
+    >
       Editar
     </button>
   );
@@ -337,7 +355,9 @@ function Empleados() {
 
   const [isModalOpenDelete, setIsModalOpenDelete] = useState(false);
 
-  const [camposModificados, setCamposModificados] = useState<Partial<EmpleadoEditarState>>({});
+  const [camposModificados, setCamposModificados] = useState<
+    Partial<EmpleadoEditarState>
+  >({});
 
   const handleOpenModal = () => {
     setIsModalOpen(true);
@@ -354,13 +374,17 @@ function Empleados() {
       correo: empleado.correo,
       error: false,
       errorMsg: "",
-    })
+    });
     setIsModalOpenEdit(true);
   };
 
-  const handleOpenModalDelete = () => {
+  const handleOpenModalDelete = (id: number, nombre?: string) => {
+    const nombreEstado = nombre ?? null;
+
+    setNombreEmpleado(nombreEstado);
+    setToDeleteId(id);
     setIsModalOpenDelete(true);
-  }
+  };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -372,7 +396,7 @@ function Empleados() {
 
   const handleCloseModalDelete = () => {
     setIsModalOpenDelete(false);
-  }
+  };
 
   useEffect(() => {
     listarRegistros();
@@ -388,105 +412,118 @@ function Empleados() {
     { key: "actions", header: "Acciones" },
   ];
 
+  const eliminarRegistro = async () => {
 
-  const eliminarRegistro = async (idElminar: number) =>{
-    if(!accessToken){
-      setStateEmpleados(prev => ({...prev, error: true, errorMsg: "Token no encontrado"}))
+
+    if (!accessToken) {
+      setStateEmpleados((prev) => ({
+        ...prev,
+        error: true,
+        errorMsg: "Token no encontrado",
+      }));
     }
 
-    try{
-      const apiEliminarRegistro = `${apiElminar}${idElminar}`;
+    try {
+      const apiEliminarRegistro = `${apiElminar}${toDeleteId}`;
 
-      console.log("URL: ", apiEliminarRegistro)
+      console.log("URL: ", apiEliminarRegistro);
 
       const response = await fetch(apiEliminarRegistro, {
-        method:"DELETE",
-        headers:{
-          Authorization: `Bearer ${accessToken}`
-        }
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       });
 
       const data = await response.json();
 
-      if (response.ok && data.success){
-        console.log("Empleado eliminado")
-
+      if (response.ok && data.success) {
+        console.log("Empleado eliminado");
+        setIsModalOpenDelete(false);
+        setToDeleteId(null);
         listarRegistros();
-      }else{
-        setStateEmpleados(prev => ({
+      } else {
+        setStateEmpleados((prev) => ({
           ...prev,
           error: true,
-          errorMsg: data.message || `Error http:${response.status} `
-        }))
+          errorMsg: data.message || `Error http:${response.status} `,
+        }));
       }
-    }catch (error){
-      setStateEmpleados(prev => ({
+    } catch (error) {
+      setStateEmpleados((prev) => ({
         ...prev,
         error: true,
-        errorMsg: "Error de conexion al intentar elminar"
-      }))
-      console.error("Error de conexion", error)
+        errorMsg: "Error de conexion al intentar elminar",
+      }));
+      console.error("Error de conexion", error);
     }
-  }
+  };
 
-  const editarRegistro = async (idEditar: number, datosEditar: Partial<{name: string, lastname: string, ci: string, rol:string}>) =>{
-    if(!accessToken){
-      setStateEmpleados(prev => ({...prev, error:true, errorMsg:"Token no encontrado"}))
+  const editarRegistro = async (
+    idEditar: number,
+    datosEditar: Partial<{
+      name: string;
+      lastname: string;
+      ci: string;
+      rol: string;
+    }>
+  ) => {
+    if (!accessToken) {
+      setStateEmpleados((prev) => ({
+        ...prev,
+        error: true,
+        errorMsg: "Token no encontrado",
+      }));
       return;
     }
-      console.log(datosEditar)
-    
-    try{
+    console.log(datosEditar);
+
+    try {
       const apiEditarRegistro = `${apiEditar}${idEditar}`;
 
-      
+      const response = await fetch(apiEditarRegistro, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(datosEditar),
+      });
 
-        const response = await fetch(apiEditarRegistro,{
-          method:"PATCH",
-          headers:{
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`
-          },
-          body: JSON.stringify(datosEditar),
-        });
+      const data = await response.json();
 
-        const data = await response.json();
+      console.log(data);
 
-        console.log(data)
-        
-        if(response.ok && data.success){
-          console.log("Registro editado.")
-          handleCloseModalEdit();
-          setSuccessMessage("Empleado editado con exito.");
-          listarRegistros();
-          setCamposModificados({});
-          setTimeout(() =>{
-            setSuccessMessage(null);
-          }, 3000)
-        }else{
-          console.error("Error en la edicion: ", data.message);
-          setEmpleadoEditar(prev => ({
-            ...prev,
-            error: true,
-            errorMsg: data.message || "Error al intentar editar"
-          }))
-        }
-    }catch(error){
+      if (response.ok && data.success) {
+        console.log("Registro editado.");
+        handleCloseModalEdit();
+        setSuccessMessage("Empleado editado con exito.");
+        listarRegistros();
+        setCamposModificados({});
+        setTimeout(() => {
+          setSuccessMessage(null);
+        }, 3000);
+      } else {
+        console.error("Error en la edicion: ", data.message);
+        setEmpleadoEditar((prev) => ({
+          ...prev,
+          error: true,
+          errorMsg: data.message || "Error al intentar editar",
+        }));
+      }
+    } catch (error) {
       console.error("Error de conexion", error);
-      setEmpleadoEditar(prev => ({
+      setEmpleadoEditar((prev) => ({
         ...prev,
         error: true,
-        errorMsg: "No se puede conectar al servidor"
-      }))
+        errorMsg: "No se puede conectar al servidor",
+      }));
     }
-  }
+  };
 
-   
-
-  
   const userDelete = (
     //Logica para el envío del formulario
-    <button  className="btn bg-blue-500 hover:bg-blue-600 text-white">
+    <button onClick={eliminarRegistro}  className="btn bg-red-500 hover:bg-red-600 text-white">
       Eliminar
     </button>
   );
@@ -499,16 +536,19 @@ function Empleados() {
     <>
       <main className="min-h-screen ">
         {successMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-xl bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded shadow" role="alert">
-          <span className="block sm:inline">{successMessage}</span>
-          <span 
-            className="absolute top-0 bottom-0 right-0 px-4 py-3 cursor-pointer"
-            onClick={() => setSuccessMessage(null)}
+          <div
+            className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-xl bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded shadow"
+            role="alert"
           >
-            &times;
-          </span>
-        </div>
-      )}
+            <span className="block sm:inline">{successMessage}</span>
+            <span
+              className="absolute top-0 bottom-0 right-0 px-4 py-3 cursor-pointer"
+              onClick={() => setSuccessMessage(null)}
+            >
+              &times;
+            </span>
+          </div>
+        )}
         <section className="flex flex-col flex-grow items-center w-full pl-4 pr-4">
           <ToolBar
             titulo="Empleados"
@@ -518,7 +558,7 @@ function Empleados() {
           <Table
             data={stateEmpleados.registros}
             columnas={columnas}
-            onDelete={eliminarRegistro}
+            onDelete={handleOpenModalDelete}
             onEdit={handleOpenModalEdit}
           />
         </section>
@@ -535,7 +575,6 @@ function Empleados() {
           id="FormularioEmpleado"
           className="grid grid-cols-2 gap-3"
         >
-          
           <div>
             <label
               htmlFor="name"
@@ -632,15 +671,14 @@ function Empleados() {
               className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
           </div>
-         
         </form>
-         <div className="min-h-6 text-center">
-          {state.error &&(
-              
-              <span className="text-center text-red-500 text-sm m-0">{state.errorMsg}</span>
-  
+        <div className="min-h-6 text-center">
+          {state.error && (
+            <span className="text-center text-red-500 text-sm m-0">
+              {state.errorMsg}
+            </span>
           )}
-          </div>
+        </div>
       </Modal>
       <Modal
         isOpen={isModalOpenEdit}
@@ -648,7 +686,11 @@ function Empleados() {
         titulo={`Editar empleado`}
         acciones={userEdit}
       >
-        <form onSubmit={manejadorSubmitEditar} id="FormularioEditarEmpleado" className="grid grid-cols-2 gap-3">
+        <form
+          onSubmit={manejadorSubmitEditar}
+          id="FormularioEditarEmpleado"
+          className="grid grid-cols-2 gap-3"
+        >
           <div>
             <label
               htmlFor="nombre"
@@ -750,10 +792,10 @@ function Empleados() {
       <Modal
         isOpen={isModalOpenDelete}
         onClose={handleCloseModalDelete}
-        titulo="¿Esta seguro que quiere eliminar?"
+        titulo="Eliminar Registro"
         acciones={userDelete}
       >
-        <h1></h1>
+        <p className="text-lg">¿Está seguro de eliminar al empleado {nombreEmpleado || 'Desconocido'}?</p>
       </Modal>
     </>
   );

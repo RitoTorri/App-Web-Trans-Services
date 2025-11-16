@@ -29,7 +29,7 @@ function Modal({ isOpen, onClose, children, titulo, acciones}: ModalProps) {
         }}
       >
         <div className="modal-box w-full max-w-3xl">
-          <h3 className="text-2xl text-center mb-8">{titulo}</h3>
+          <h3 className="text-2xl text-center mb-8 pb-4 border-b border-gray-400">{titulo}</h3>
           <div className="">{children}</div>
           
           <div className="flex justify-end gap-8 mt-10">

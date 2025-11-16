@@ -94,7 +94,14 @@ function Table({
                         </button>
                         {onDelete && (
                           <button
-                            onClick={() => onDelete(item.id)}
+                            onClick={() => {
+                              
+                              const name = (item as any)['name'] || '';
+                              const lastName = (item as any)['lastname'] || '';
+
+                              const nombreCompleto = `${name} ${lastName}`.trim();
+
+                              onDelete(item.id , nombreCompleto)}}
                             className="btn bg-red-500 text-white hover:bg-red-600 font-medium transition-colors"
                             title="Eliminar"
                           >

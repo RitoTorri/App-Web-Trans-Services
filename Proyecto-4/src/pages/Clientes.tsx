@@ -89,7 +89,7 @@ function Clientes() {
             data={cliente}
             columnas={columnas}
             onEdit={handleOpenModalEdit}
-            onDelete={handleDelete}
+            
           />
         </section>
       </main>

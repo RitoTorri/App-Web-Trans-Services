@@ -9,6 +9,7 @@
     cedula: string;
     rol: string;
     contacts: {contact_info: string}[];
+    nombre_completo: string;
   }
 
 export interface Servicio extends Item{
@@ -44,7 +45,6 @@ export interface Vehiculo extends Item{
 }
 
 export interface Nomina extends Item{
-  id: number;
   estado: string;
   id_empleado: number;
   inicio_periodo: Date;
