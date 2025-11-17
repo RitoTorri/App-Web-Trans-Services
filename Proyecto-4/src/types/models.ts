@@ -24,10 +24,10 @@ export interface Servicio extends Item{
 }
 
 export interface Cliente extends Item{
-  nombre: string;
+  name: string;
   rif: string;
-  telefono:string;
-  direccion: string;
+  contact:string;
+  address: string;
   
 }
 

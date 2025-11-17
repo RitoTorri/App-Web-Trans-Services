@@ -1,95 +1,424 @@
 import Table from "../components/Table/Table";
 import ToolBar from "../components/Table/ToolBar";
-import type { Cliente } from "../types/models";
 import type { Item } from "../types/models";
 import Modal from "../components/Modal/Modal";
-import {useState} from "react";
+import React, { useEffect, useState } from "react";
+import { apiRegistrar, apiObtener, apiEditar } from "../services/apiClientes";
 
-const ejemploClientes: Cliente[] = [
-  {
-    id: 1,
-    nombre: "Inversions S&K",
-    rif: "J-08512817-4",
-    telefono: "04126378129",
-    direccion: "Carrera 19 entre calle 50",
-    
+interface RegisterFormState {
+  name: string;
+  rif: string;
+  contact: string;
+  address: string;
+}
+
+interface RegisterState {
+  form: RegisterFormState;
+  error: boolean;
+  errorMsg: string;
+}
+
+const initialState: RegisterState = {
+  form: {
+    name: "",
+    rif: "",
+    contact: "",
+    address: "",
   },
-];
+  error: false,
+  errorMsg: "",
+};
+
+interface ClientesState {
+  registros: Item[];
+  error: boolean;
+  errorMsg: string;
+}
+
+const initialStateClientes: ClientesState = {
+  registros: [] as Item[],
+  error: false,
+  errorMsg: "",
+};
+
+interface ClienteEditarState{
+  id: number | null;
+  rif: string;
+  name: string;
+  contact: string;
+  address: string;
+  error: boolean;
+  errorMsg: string;
+}
+
+const initialStateClienteEditar : ClienteEditarState ={
+  id: null,
+  rif: "",
+  name: "",
+  contact: "",
+  address: "",
+  error: false,
+  errorMsg: ""
+}
 
 function Clientes() {
-  const cliente = ejemploClientes;
+  const accessToken = localStorage.getItem("token");
+
+  const [state, setState] = useState<RegisterState>(initialState);
+
+  const [stateClientes, setStateClientes] =
+    useState<ClientesState>(initialStateClientes);
+
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const [clienteEditar, setClienteEditar] = useState<ClienteEditarState>(initialStateClienteEditar);
+
+  const [camposModificados, setCamposModificados] = useState<Partial<ClienteEditarState>>({});
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+
+    setState((prevState) => ({
+      ...prevState,
+      form: {
+        ...prevState.form,
+        [name]: value,
+      },
+      error: false,
+      errorMsg: "",
+    }));
+  };
+
+  const handleInputChangeEdit = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const {name, value} = e.target;
+
+    setClienteEditar((prevState) => ({
+      ...prevState,
+      [name]: value,
+      error: false,
+      errorMsg: ""  
+    }))
+
+    setCamposModificados((prevFields) => ({
+      ...prevFields,
+      [name]: value
+    }));
+  }
+
+  //Cargar registros clientes
+  const listarRegistros = async (terminoBusqueda = "") => {
+    if (!accessToken) {
+      setStateClientes((prevState) => ({
+        ...prevState,
+        error: true,
+        errorMsg: "Token no encontrado",
+      }));
+      console.error("DEBUG: Token no encontrado.");
+      return;
+    }
+
+    let filterValue = "all";
+
+    if (terminoBusqueda && terminoBusqueda.trim() !== "") {
+      filterValue = encodeURIComponent(terminoBusqueda.trim());
+    }
+
+    const urlBusqueda = `${apiObtener}${filterValue}`;
+
+    try {
+      const response = await fetch(urlBusqueda, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const data = await response.json();
+      console.log("Contenido: ", data);
+
+      if (response.ok && data.success) {
+        const registrosApi = data.details;
+
+        setStateClientes((prev) => ({
+          ...prev,
+          registros: registrosApi,
+        }));
+      } else {
+        setStateClientes((prevState) => ({
+          ...prevState,
+          error: true,
+          errorMsg: data.message || "Error al cargar registros",
+        }));
+
+        console.error("Fallo: ", data.message);
+      }
+    } catch (error) {
+      setStateClientes((prevSatate) => ({
+        ...prevSatate,
+        error: true,
+        errorMsg: "Error de conexion",
+      }));
+      console.error("Error: ", error);
+    }
+  };
+
+  useEffect(() => {
+    listarRegistros();
+  }, []);
+
+  //Registrar Clientes
+  const manejadorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    setState((prevState) => ({ ...prevState, error: false, errorMsg: "" }));
+
+    if (
+      !state.form.name ||
+      !state.form.contact ||
+      !state.form.rif ||
+      !state.form.address
+    ) {
+      setState((prevState) => ({
+        ...prevState,
+        error: true,
+        errorMsg: "Por favor complete todos los campos.",
+      }));
+      return;
+    }
+
+    try {
+      const { name, contact, rif, address } = state.form;
+
+      const dataToSend = {
+        name,
+        contact,
+        rif,
+        address,
+      };
+
+      const response = await fetch(apiRegistrar, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(dataToSend),
+      });
+
+      console.log(dataToSend);
+
+      if (response.ok) {
+        console.log("Registrado con exito");
+        setState(initialState);
+        listarRegistros();
+        setSuccessMessage("Cliente registrado con éxito.");
+        handleCloseModal();
+
+        setTimeout(() =>{
+          setSuccessMessage(null);
+        }, 3000);
+      } else {
+        const errorData = await response.json();
+        console.error(errorData);
+        setState((prevState) => ({
+          ...prevState,
+          error: true,
+          errorMsg: "Ya existe un dato registrado.",
+        }));
+      }
+    } catch (error) {
+      console.error("Error de conexion: ", error);
+      setState((prevState) => ({
+        ...prevState,
+        error: true,
+        errorMsg: "No se puede conectar al servidor",
+      }));
+    }
+  };
+
+  //Editar Cliente
+  const manejadorSubmitEditar = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    setClienteEditar((prevState) => ({
+      ...prevState,
+      error: false,
+      errorMsg: "",
+    }));
+
+    if(Object.keys(camposModificados).length === 0){
+      setClienteEditar((prevState) => ({
+        ...prevState,
+        error: true,
+        errorMsg: "No se han detectado cambios"
+      }))
+      return;
+    }
+
+    if(clienteEditar.id !==null){
+      await editarRegistro(clienteEditar.id, camposModificados);
+    }
+
+    if(
+      !clienteEditar.address ||
+      !clienteEditar.contact ||
+      !clienteEditar.name ||
+      !clienteEditar.rif
+    ){
+      setClienteEditar((prevState) => ({
+        ...prevState,
+        error: true,
+        errorMsg: "Por favor, complete los campos obligatorios."
+      }));
+      return;
+    }
+  }
+
+  const editarRegistro = async (
+    idEditar: number,
+    datosEditar: Partial<{
+      name: string;
+      address: string;
+      contact: string;
+      rif: string;
+    }>
+  ) => {
+    if(!accessToken){
+      setStateClientes((prevState) => ({
+        ...prevState,
+        error: true,
+        errorMsg: "Token no encontrado"
+      }))
+      return;
+    }
+    console.log(datosEditar);
+
+    try{
+      const apiEditarRegistro = `${apiEditar}${idEditar}`;
+
+      const response = await fetch(apiEditarRegistro, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(datosEditar),
+      });
+
+      const data = await response.json();
+
+      console.log(data);
+
+      if(response.ok && data.success){
+        console.log("Registro Editado")
+        handleCloseModalEdit();
+        setSuccessMessage("Cliente editado con éxito.");
+        listarRegistros();
+        setCamposModificados({});
+        setTimeout(() => {
+          setSuccessMessage(null)
+        }, 3000);
+      }else{
+        console.error("Error en la edicion: ",data.message)
+        setClienteEditar((prev) => ({
+          ...prev,
+          erorr: true,
+          errorMsg: "Error al intentar editar",
+        }));
+      }
+    }catch(error){
+      console.error("Error de conexión: ",error)
+      setClienteEditar((prev) => ({
+        ...prev,
+        error: true,
+        errorMsg: "Error al conectar al servidor.",
+      }))
+    }
+
+  }
 
   const columnas = [
-    { key: "nombre", header: "Nombre" },
+    { key: "name", header: "Nombre" },
     { key: "rif", header: "Rif" },
-    { key: "telefono", header: "Teléfono" },
-    { key: "direccion", header: "Dirección" },
+    { key: "contact", header: "Teléfono" },
+    { key: "address", header: "Dirección" },
     { key: "actions", header: "Acciones" },
   ];
 
   const userRegistro = (
     //Logica para el envío del formulario
-    <button className="btn bg-blue-500 hover:bg-blue-600 text-white">
+    <button
+      form="FormularioCliente"
+      className="btn bg-blue-500 hover:bg-blue-600 text-white"
+    >
       Registrar
     </button>
-  )
+  );
 
   const userEdit = (
     //Logica para el envío del formulario
-    <button className="btn bg-blue-500 hover:bg-blue-600 text-white">
+    <button form="FormularioEditarCliente" className="btn bg-blue-500 hover:bg-blue-600 text-white">
       Editar
     </button>
-  )
+  );
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [isModalOpenEdit, setIsModalOpenEdit] = useState(false);
+
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleOpenModalEdit = (cliente: Item) => {
+    setClienteEditar({
+      id: cliente.id,
+      name: cliente.name,
+      address: cliente.address,
+      rif: cliente.rif,
+      contact: cliente.contact,
+      error: false,
+      errorMsg: "",
+    })
+    setIsModalOpenEdit(true);
+  };
+
+  const handleCloseModalEdit = () => {
+    setIsModalOpenEdit(false);
+  };
   
-    const handleOpenModal = () => {
-      setIsModalOpen(true);
-    };
-  
-    const handleCloseModal = () => {
-      setIsModalOpen(false);
-    };
-
-    const handleOpenModalEdit = () => {
-      setIsModalOpenEdit(true);
-    };
-
-    const handleCloseModalEdit = () => {
-      setIsModalOpenEdit(false);
-    }
-
-  const handleEdit = (item: Item) => {
-    console.log("Editar");
-    item;
-  };
-
-  const handleDelete = (item: Item) => {
-    console.log("Eliminar");
-    item;
-  };
-
-
-  const handleSearch = () => {
-    console.log("Buscar");
-  };
-
   return (
     <>
       <main className="min-h-screen">
+        {successMessage && (
+          <div
+            className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-xl bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded shadow"
+            role="alert"
+          >
+            <span className="block sm:inline">{successMessage}</span>
+            <span
+              className="absolute top-0 bottom-0 right-0 px-4 py-3 cursor-pointer"
+              onClick={() => setSuccessMessage(null)}
+            >
+              &times;
+            </span>
+          </div>
+        )}
         <section className="flex flex-col flex-grow w-full items-center  pl-4 pr-4">
           <ToolBar
             titulo="Clientes"
             onRegister={handleOpenModal}
-            onSearch={handleSearch}
+            onSearch={listarRegistros}
           />
           <Table
-            data={cliente}
+            data={stateClientes.registros}
             columnas={columnas}
             onEdit={handleOpenModalEdit}
-            
           />
         </section>
       </main>
@@ -97,9 +426,13 @@ function Clientes() {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         titulo="Registrar Nuevo Cliente"
-        acciones={userRegistro} 
+        acciones={userRegistro}
       >
-        <form action="" className="grid grid-cols-2 gap-3">
+        <form
+          id="FormularioCliente"
+          onSubmit={manejadorSubmit}
+          className="grid grid-cols-2 gap-3"
+        >
           <div>
             <label
               htmlFor="nombre"
@@ -109,7 +442,9 @@ function Clientes() {
             </label>
             <input
               type="text"
-              name="nombre"
+              name="name"
+              onChange={handleInputChange}
+              value={state.form.name}
               placeholder="Ingrese el Nombre"
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
@@ -124,11 +459,13 @@ function Clientes() {
             <input
               type="text"
               name="rif"
+              onChange={handleInputChange}
+              value={state.form.rif}
               placeholder="Ingrese el RIF"
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
-            </div>
-            
+          </div>
+
           <div>
             <label
               htmlFor="telefono"
@@ -138,7 +475,9 @@ function Clientes() {
             </label>
             <input
               type="text"
-              name="telefono"
+              name="contact"
+              onChange={handleInputChange}
+              value={state.form.contact}
               placeholder="Ingrese el Número de Teléfono"
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
@@ -152,21 +491,29 @@ function Clientes() {
             </label>
             <input
               type="text"
-              name="direccion"
+              name="address"
+              onChange={handleInputChange}
+              value={state.form.address}
               placeholder="Ingrese la Dirección"
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
           </div>
         </form>
+        <div className="min-h-6 text-center">
+          {state.error && (
+            <span className="text-center text-red-500 text-sm m-0">
+              {state.errorMsg}
+            </span>
+          )}
+        </div>
       </Modal>
       <Modal
         isOpen={isModalOpenEdit}
         onClose={handleCloseModalEdit}
         titulo="Editar Cliente"
         acciones={userEdit}
-
       >
-        <form action="" className="grid grid-cols-2 gap-3">
+        <form id="FormularioEditarCliente" onSubmit={manejadorSubmitEditar} className="grid grid-cols-2 gap-3">
           <div>
             <label
               htmlFor="nombre"
@@ -176,7 +523,9 @@ function Clientes() {
             </label>
             <input
               type="text"
-              name="nombre"
+              name="name"
+              value={clienteEditar.name}
+              onChange={handleInputChangeEdit}
               placeholder="Ingrese el Nombre"
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
@@ -191,11 +540,13 @@ function Clientes() {
             <input
               type="text"
               name="rif"
+              value={clienteEditar.rif}
+              onChange={handleInputChangeEdit}
               placeholder="Ingrese el RIF"
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
-            </div>
-            
+          </div>
+
           <div>
             <label
               htmlFor="telefono"
@@ -205,7 +556,9 @@ function Clientes() {
             </label>
             <input
               type="text"
-              name="telefono"
+              name="contact"
+              onChange={handleInputChangeEdit}
+              value={clienteEditar.rif}
               placeholder="Ingrese el Número de Teléfono"
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
@@ -219,11 +572,18 @@ function Clientes() {
             </label>
             <input
               type="text"
-              name="direccion"
+              name="address"
+              onChange={handleInputChangeEdit}
+              value={clienteEditar.address}
               placeholder="Ingrese la Dirección"
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
           </div>
+          <div className="col-span-2 text-center m-0  min-h-6">
+            {clienteEditar.errorMsg && (
+              <span className="text-red-600 text-sm m-0">{clienteEditar.errorMsg}</span>
+            )}
+            </div>
         </form>
       </Modal>
     </>

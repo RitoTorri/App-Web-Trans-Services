@@ -109,7 +109,7 @@ function InicioSesion() {
               src="https://i.pinimg.com/736x/14/20/fd/1420fdb2c1b84a55bc9a61e3050b0fa5.jpg" 
               alt="Logo de la Aplicación" 
               className="rounded-full w-full max-w-xs object-cover" 
-              // En caso de erro
+              // En caso de error
               onError={(e) => {
                 e.currentTarget.onerror = null; 
                 e.currentTarget.src = "https://placehold.co/400x100/EF4444/ffffff?text=LOGO+FALLO";
@@ -202,9 +202,9 @@ function InicioSesion() {
             </div>
             <div className="min-h-6">
               {state.error && (
-                <p className="text-center text-red-500 text-sm m-0">
+                <span className="text-center text-red-500 text-sm m-0">
                   {state.errorMsg}
-                </p>
+                </span>
               )}
             </div>
             <button

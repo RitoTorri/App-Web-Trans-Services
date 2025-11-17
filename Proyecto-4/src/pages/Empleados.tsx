@@ -103,12 +103,12 @@ function Empleados() {
   );
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const [empleadoEditar, setEmpleadoEditar] = useState<EmpleadoEditarState>(
-    initialStateEmpleadosEditar
-  );
+  const [empleadoEditar, setEmpleadoEditar] = useState<EmpleadoEditarState>(initialStateEmpleadosEditar);
 
   const [toDeleteId, setToDeleteId] = useState<number | null>(null);
   const [nombreEmpleado, setNombreEmpleado] = useState<string | null>(null);
+
+  
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -142,8 +142,8 @@ function Empleados() {
 
   const accessToken = localStorage.getItem("token");
 
-  //Funcion para elminar los registros
-  const listarRegistros = async () => {
+  //Funcion para cargar los registros
+  const listarRegistros = async (terminoBusqueda = "") => {
     if (!accessToken) {
       setStateEmpleados((prev) => ({
         ...prev,
@@ -154,8 +154,17 @@ function Empleados() {
       return;
     }
 
+    const activo = "true";
+    let filterValue= "all";
+
+    if(terminoBusqueda && terminoBusqueda.trim() !== ""){
+      filterValue = encodeURIComponent(terminoBusqueda.trim());
+    }
+
+    const urlBusqueda = `${apiObtener}${activo}/${filterValue}`;
+
     try {
-      const response = await fetch(apiObtener, {
+      const response = await fetch(urlBusqueda, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -171,14 +180,13 @@ function Empleados() {
 
       if (response.ok && data.success) {
         const registrosAPI = data.details;
-        console.log("REGISTROS crudos", data.details);
         const registrosParaTabla = transformarRegistros(registrosAPI);
 
         setStateEmpleados((prev) => ({
           ...prev,
           registros: registrosParaTabla,
         }));
-        console.error("DEBUG: Registros para la tabla", registrosParaTabla);
+        
       } else {
         setStateEmpleados((prev) => ({
           ...prev,
@@ -291,7 +299,7 @@ function Empleados() {
     }
   };
 
-  //Funcion para ediatar un registro
+  //Funcion para editar un registro
   const manejadorSubmitEditar = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -528,10 +536,6 @@ function Empleados() {
     </button>
   );
 
-  const handleSearch = () => {
-    console.log("Buscar");
-  };
-
   return (
     <>
       <main className="min-h-screen ">
@@ -552,7 +556,7 @@ function Empleados() {
         <section className="flex flex-col flex-grow items-center w-full pl-4 pr-4">
           <ToolBar
             titulo="Empleados"
-            onSearch={handleSearch}
+            onSearch={listarRegistros}
             onRegister={handleOpenModal}
           />
           <Table
@@ -786,6 +790,11 @@ function Empleados() {
               placeholder="Ingrese el Correo Electrónico"
               className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
+          </div>
+          <div className="col-span-2 min-h-6 text-center p-0">
+            {empleadoEditar.errorMsg && (
+              <span className="text-red-600 text-sm m-0">{empleadoEditar.errorMsg}</span>
+            )}
           </div>
         </form>
       </Modal>
