@@ -75,6 +75,8 @@ function Clientes() {
 
   const [camposModificados, setCamposModificados] = useState<Partial<ClienteEditarState>>({});
 
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
@@ -107,6 +109,7 @@ function Clientes() {
 
   //Cargar registros clientes
   const listarRegistros = async (terminoBusqueda = "") => {
+    setIsLoading(true);
     if (!accessToken) {
       setStateClientes((prevState) => ({
         ...prevState,
@@ -135,7 +138,7 @@ function Clientes() {
       });
 
       const data = await response.json();
-      console.log("Contenido: ", data);
+      
 
       if (response.ok && data.success) {
         const registrosApi = data.details;
@@ -160,6 +163,8 @@ function Clientes() {
         errorMsg: "Error de conexion",
       }));
       console.error("Error: ", error);
+    }finally{
+      setIsLoading(false);
     }
   };
 
@@ -391,6 +396,7 @@ function Clientes() {
   const handleCloseModalEdit = () => {
     setIsModalOpenEdit(false);
   };
+
   
   return (
     <>
@@ -415,11 +421,17 @@ function Clientes() {
             onRegister={handleOpenModal}
             onSearch={listarRegistros}
           />
+          {isLoading ? (
+             <div className="w-full flex items-center justify-center py-6">
+        <span className="loading loading-spinner loading-xl"></span>
+      </div>
+          ) : (
           <Table
             data={stateClientes.registros}
             columnas={columnas}
             onEdit={handleOpenModalEdit}
           />
+          )  }
         </section>
       </main>
       <Modal
@@ -558,7 +570,7 @@ function Clientes() {
               type="text"
               name="contact"
               onChange={handleInputChangeEdit}
-              value={clienteEditar.rif}
+              value={clienteEditar.contact}
               placeholder="Ingrese el Número de Teléfono"
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />

@@ -8,7 +8,7 @@
     apellido: string;
     cedula: string;
     rol: string;
-    contacts: {contact_info: string}[];
+    contacts: {contact_info: string , idContact?:number}[];
     nombre_completo: string;
   }
 

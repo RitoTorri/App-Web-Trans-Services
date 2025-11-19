@@ -4,4 +4,6 @@ export const apiObtener = "http://localhost:3000/api/trans/services/employee/sea
 
 export const apiElminar = "http://localhost:3000/api/trans/services/employee/";
 
-export const apiEditar = "http://localhost:3000/api/trans/services/employee/"
+export const apiEditar = "http://localhost:3000/api/trans/services/employee/";
+
+export const apiRestaurar = "http://localhost:3000/api/trans/services/employee/restore/";

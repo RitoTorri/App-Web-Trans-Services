@@ -9,8 +9,9 @@ export interface TableProps {
   data: Item[];
   columnas: ConfiguracionColumna[];
 
-  onEdit: (item: Item) => void;
+  onEdit?: (item: Item) => void;
   onDelete?: (id: number, nombre?: string) => void;
+  onRestore?: (id:number, nombre?:string) => void;
 
   emptyMessage?: string;
 }
