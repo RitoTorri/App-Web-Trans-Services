@@ -28,7 +28,6 @@ export interface Cliente extends Item{
   rif: string;
   contact:string;
   address: string;
-  
 }
 
 export interface Proveedor extends Item{
@@ -44,22 +43,13 @@ export interface Vehiculo extends Item{
   
 }
 
-export interface Nomina extends Item{
-  estado: string;
-  id_empleado: number;
-  inicio_periodo: Date;
-  //fin_periodo: Date;
-  salario_diario: number;
-  total_dias_pagados: number;
- // salario_mensual: number;
-  //salario_integral: number;
- // ganancias_anuales: number;
- // cotizaciones: number; 
- // seguridad_social: number;
- // fondo_desempleo: number;
- // fondo_ahorros: number;
-  //total_deducciones: number;
-  //salario_neto: number;
- // creado_en: Date;
- // actualizado_en: Date;
+export interface Nomina extends Item {
+    employee_id: number;  // Cambiado de 'id_empleado'
+    period_start: string;   // Cambiado de 'inicio_periodo'
+    period_end: string;     // Nuevo campo obligatorio
+    daily_salary: number; // Cambiado de 'salario_diario'
+    total_days_paid: number; // Cambiado de 'total_dias_pagados'
+    ivss: number;         // Nuevo campo obligatorio
+    pie: number;          // Nuevo campo obligatorio
+    faov: number;         // Nuevo campo obligatorio
 }

@@ -75,6 +75,8 @@ function Clientes() {
 
   const [camposModificados, setCamposModificados] = useState<Partial<ClienteEditarState>>({});
 
+
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
@@ -154,8 +156,8 @@ function Clientes() {
         console.error("Fallo: ", data.message);
       }
     } catch (error) {
-      setStateClientes((prevSatate) => ({
-        ...prevSatate,
+      setStateClientes((prevState) => ({
+        ...prevState,
         error: true,
         errorMsg: "Error de conexion",
       }));
@@ -323,7 +325,7 @@ function Clientes() {
         console.error("Error en la edicion: ",data.message)
         setClienteEditar((prev) => ({
           ...prev,
-          erorr: true,
+          error: true,
           errorMsg: "Error al intentar editar",
         }));
       }
