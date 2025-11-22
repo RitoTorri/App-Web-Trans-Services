@@ -8,9 +8,11 @@ import {
   apiObtener,
   apiElminar,
   apiEditar,
+  apiRestaurar,
 } from "../services/apiEmpleados";
 
 interface Contact {
+  id?: number | null;
   contact_info: string;
 }
 
@@ -61,15 +63,19 @@ const initialStateEmpleados: EmpleadosState = {
 };
 
 const transformarRegistros = (registrosAPI: Empleado[]): Item[] => {
-  return registrosAPI.map((empleado) => ({
-    ...empleado,
+  return registrosAPI.map((empleado) => {
+    const contacts = empleado.employee_contacts || [];
+    const emailObj = contacts.find((c: any) => c.contact_info.includes("@"));
+    const phoneObj = contacts.find((c: any) => c.id !== emailObj?.id);
 
-    nombre_completo: `${empleado.nombre} ${empleado.apellido}`,
+    return {
+      ...empleado,
+      nombre_completo: `${empleado.nombre} ${empleado.apellido}`,
 
-    correo: empleado.employee_contacts?.[0]?.contact_info || "N/A",
-
-    telefono: empleado.employee_contacts?.[1]?.contact_info || "N/A",
-  }));
+      correo: emailObj ? emailObj.contact_info : "N/A",
+      telefono: phoneObj ? phoneObj.contact_info : "N/A",
+    };
+  });
 };
 
 interface EmpleadoEditarState {
@@ -80,6 +86,7 @@ interface EmpleadoEditarState {
   rol: string;
   telefono: string;
   correo: string;
+  contacts?: Contact[];
   error: boolean;
   errorMsg: string;
 }
@@ -92,6 +99,12 @@ const initialStateEmpleadosEditar: EmpleadoEditarState = {
   rol: "",
   telefono: "",
   correo: "",
+  contacts: [
+    {
+      contact_info: "",
+      id: null,
+    },
+  ],
   error: false,
   errorMsg: "",
 };
@@ -101,14 +114,37 @@ function Empleados() {
   const [stateEmpleados, setStateEmpleados] = useState<EmpleadosState>(
     initialStateEmpleados
   );
+  const [stateEmpleadosInactivos, setStateEmpleadosInactivos] =
+    useState<EmpleadosState>(initialStateEmpleados);
+
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const [empleadoEditar, setEmpleadoEditar] = useState<EmpleadoEditarState>(initialStateEmpleadosEditar);
+  const [empleadoEditar, setEmpleadoEditar] = useState<EmpleadoEditarState>(
+    initialStateEmpleadosEditar
+  );
 
   const [toDeleteId, setToDeleteId] = useState<number | null>(null);
   const [nombreEmpleado, setNombreEmpleado] = useState<string | null>(null);
 
-  
+  const [toRestoreId, setToRestoreId] = useState<number | null>(null);
+
+  const [isLoadingActivos, setIsLoadingActivos] = useState<boolean>(true);
+  const [isLoadingInactivos, setIsLoadingInactivos] = useState<boolean>(true);
+
+  const [camposModificados, setCamposModificados] = useState<
+    Partial<EmpleadoEditarState>
+  >({});
+
+  const [originalContacts, setOriginalContacts] = useState<Contact[]>([]);
+
+  const [vistaActual, setVistaActual] = useState<"activos" | "inactivos">(
+    "activos"
+  );
+
+  const datosRenderizar =
+    vistaActual === "activos"
+      ? stateEmpleados.registros
+      : stateEmpleadosInactivos.registros;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -127,23 +163,39 @@ function Empleados() {
   const handleInputChangeEdit = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
-    setEmpleadoEditar((prevState) => ({
-      ...prevState,
-      [name]: value,
-      error: false,
-      errorMsg: "",
-    }));
+    setEmpleadoEditar((prevState) => {
+      let nuevosContacts = prevState.contacts ? [...prevState.contacts] : [];
+      if (name === "correo") {
+        if (nuevosContacts[0]) {
+          nuevosContacts[0] = { ...nuevosContacts[0], contact_info: value };
+        }
+      } else if (name === "telefono") {
+        if (nuevosContacts[1]) {
+          nuevosContacts[1] = { ...nuevosContacts[1], contact_info: value };
+        }
+      }
 
-    setCamposModificados((prevFields) => ({
-      ...prevFields,
-      [name]: value,
-    }));
+      return {
+        ...prevState,
+        [name]: value,
+        contacts: nuevosContacts,
+        error: false,
+        errorMsg: "",
+      };
+    });
+    if (name !== "correo" && name !== "telefono") {
+      setCamposModificados((prevFields) => ({
+        ...prevFields,
+        [name]: value,
+      }));
+    }
   };
 
   const accessToken = localStorage.getItem("token");
 
-  //Funcion para cargar los registros
   const listarRegistros = async (terminoBusqueda = "") => {
+    setIsLoadingActivos(true);
+
     if (!accessToken) {
       setStateEmpleados((prev) => ({
         ...prev,
@@ -151,13 +203,77 @@ function Empleados() {
         errorMsg: "Token no encontrado.",
       }));
       console.error("DEBUG: Token no encontrado");
+      setIsLoadingActivos(false);
       return;
     }
 
     const activo = "true";
-    let filterValue= "all";
+    let filterValue = "all";
 
-    if(terminoBusqueda && terminoBusqueda.trim() !== ""){
+    if (terminoBusqueda && terminoBusqueda.trim() !== "") {
+      filterValue = encodeURIComponent(terminoBusqueda.trim());
+    }
+
+    const urlBusqueda = `${apiObtener}${activo}/${filterValue}`;
+
+    try {
+      const response = await fetch(urlBusqueda, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const data = await response.json();
+      console.log("DEBUG contenido de la data", data);
+
+      if (response.ok && data.success) {
+        const registrosAPI = data.details;
+        const registrosParaTabla = transformarRegistros(registrosAPI);
+
+        setStateEmpleados((prev) => ({
+          ...prev,
+          registros: registrosParaTabla,
+        }));
+      } else {
+        setStateEmpleados((prev) => ({
+          ...prev,
+          error: true,
+          errorMsg: data.message || "Error al cargar registros",
+        }));
+        console.error("DEBUG: fallo logico", data.message);
+      }
+    } catch (error) {
+      setStateEmpleados((prev) => ({
+        ...prev,
+        error: true,
+        errorMsg: "Error al alistar",
+      }));
+      console.error("ERROR DE FETC", error);
+    } finally {
+      setIsLoadingActivos(false);
+    }
+  };
+
+  //funciñon para cargar los empleados no activos
+  const listarRegistrosInactivos = async (terminoBusqueda = "") => {
+    setIsLoadingInactivos(true);
+
+    if (!accessToken) {
+      setStateEmpleadosInactivos((prevState) => ({
+        ...prevState,
+        error: true,
+        errorMsg: "Token no encontrado.",
+      }));
+      console.log("DEBUG: Token no encontardo");
+      return;
+    }
+
+    const activo = "false";
+    let filterValue = "all";
+
+    if (terminoBusqueda && terminoBusqueda.trim() !== "") {
       filterValue = encodeURIComponent(terminoBusqueda.trim());
     }
 
@@ -176,32 +292,32 @@ function Empleados() {
       console.log("DEBUG: response.ok", response.ok);
 
       const data = await response.json();
-      console.log("DEBUG contenido de la data", data);
 
       if (response.ok && data.success) {
-        const registrosAPI = data.details;
-        const registrosParaTabla = transformarRegistros(registrosAPI);
+        const registrosApi = data.details;
+        const resgistrosTabla = transformarRegistros(registrosApi);
 
-        setStateEmpleados((prev) => ({
+        setStateEmpleadosInactivos((prev) => ({
           ...prev,
-          registros: registrosParaTabla,
+          registros: resgistrosTabla,
         }));
-        
       } else {
-        setStateEmpleados((prev) => ({
+        setStateEmpleadosInactivos((prev) => ({
           ...prev,
           error: true,
-          errorMsg: data.message || "Error al cargar registros",
+          errorMsg: data.message || "Error al cargar registros.",
         }));
         console.error("DEBUG: fallo logico", data.message);
       }
     } catch (error) {
-      setStateEmpleados((prev) => ({
+      setStateEmpleadosInactivos((prev) => ({
         ...prev,
         error: true,
-        errorMsg: "Error al alistar",
+        errorMsg: "Error al alistar.",
       }));
-      console.error("ERROR DE FETC", error);
+      console.log("Error logico", error);
+    } finally {
+      setIsLoadingInactivos(false);
     }
   };
 
@@ -266,6 +382,8 @@ function Empleados() {
         body: JSON.stringify(datoToSend),
       });
 
+      console.log("", datoToSend);
+
       if (response.ok) {
         console.log("Registrado con exito");
 
@@ -309,18 +427,31 @@ function Empleados() {
       errorMsg: "",
     }));
 
-    if (Object.keys(camposModificados).length === 0) {
-      setEmpleadoEditar((prev) => ({
-        ...prev,
-        error: true,
-        errorMsg: "No se han detectado cambios",
-      }));
-      return;
+    const datosAEnviar: Partial<EmpleadoEditarState & { contacts: Contact[] }> =
+      {
+        ...camposModificados,
+      };
+
+    const contactosModificadosAEnviar: Contact[] = [];
+
+    if (empleadoEditar.contacts && originalContacts.length > 0) {
+      empleadoEditar.contacts.forEach((currentContact) => {
+        const original = originalContacts.find(
+          (oc) => oc.id === currentContact.id
+        );
+
+        if (original && original.contact_info !== currentContact.contact_info) {
+          contactosModificadosAEnviar.push(currentContact);
+        }
+      });
     }
 
-    if (empleadoEditar.id !== null) {
-      await editarRegistro(empleadoEditar.id, camposModificados);
+    if (contactosModificadosAEnviar.length > 0) {
+      datosAEnviar.contacts = contactosModificadosAEnviar;
     }
+
+    delete datosAEnviar.correo;
+    delete datosAEnviar.telefono;
 
     if (
       !empleadoEditar.name ||
@@ -335,27 +466,20 @@ function Empleados() {
       }));
       return;
     }
+
+    if (Object.keys(datosAEnviar).length === 0) {
+      setEmpleadoEditar((prev) => ({
+        ...prev,
+        error: true,
+        errorMsg: "No se han detectado cambios",
+      }));
+      return;
+    }
+
+    if (empleadoEditar.id !== null) {
+      await editarRegistro(empleadoEditar.id, datosAEnviar);
+    }
   };
-
-  const userRegistro = (
-    //Logica para el envío del formulario
-    <button
-      form="FormularioEmpleado"
-      className="btn bg-blue-500 hover:bg-blue-600 text-white"
-    >
-      Registrar
-    </button>
-  );
-
-  const userEdit = (
-    //Logica para el envío del formulario
-    <button
-      form="FormularioEditarEmpleado"
-      className="btn bg-blue-500 hover:bg-blue-600 text-white"
-    >
-      Editar
-    </button>
-  );
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -363,26 +487,42 @@ function Empleados() {
 
   const [isModalOpenDelete, setIsModalOpenDelete] = useState(false);
 
-  const [camposModificados, setCamposModificados] = useState<
-    Partial<EmpleadoEditarState>
-  >({});
+  const [isModalOpenRestore, setIsModalOpenRestore] = useState(false);
 
   const handleOpenModal = () => {
     setIsModalOpen(true);
   };
 
   const handleOpenModalEdit = (empleado: Item) => {
+    const contactsApi = empleado.employee_contacts || [];
+
+    const emailFound = contactsApi.find((c: any) =>
+      c.contact_info.includes("@")
+    ) || { id: null, contact_info: "" };
+
+    const phoneFound = contactsApi.find((c: any) => c.id !== emailFound.id) || {
+      id: null,
+      contact_info: "",
+    };
+
+    const contactosOrdenados: Contact[] = [
+      { id: emailFound.id, contact_info: emailFound.contact_info },
+      { id: phoneFound.id, contact_info: phoneFound.contact_info },
+    ];
+
     setEmpleadoEditar({
       id: empleado.id,
       name: empleado.name,
       lastname: empleado.lastname,
       ci: empleado.ci,
       rol: empleado.rol,
-      telefono: empleado.telefono,
-      correo: empleado.correo,
+      correo: contactosOrdenados[0].contact_info,
+      telefono: contactosOrdenados[1].contact_info,
+      contacts: contactosOrdenados,
       error: false,
       errorMsg: "",
     });
+    setOriginalContacts(contactosOrdenados);
     setIsModalOpenEdit(true);
   };
 
@@ -392,6 +532,18 @@ function Empleados() {
     setNombreEmpleado(nombreEstado);
     setToDeleteId(id);
     setIsModalOpenDelete(true);
+  };
+
+  const handleOpenModalRestore = (id: number, nombre?: string) => {
+    const nombreEstado = nombre ?? null;
+
+    setNombreEmpleado(nombreEstado);
+    setToRestoreId(id);
+    setIsModalOpenRestore(true);
+  };
+
+  const handleCloseModalRestore = () => {
+    setIsModalOpenRestore(false);
   };
 
   const handleCloseModal = () => {
@@ -408,6 +560,7 @@ function Empleados() {
 
   useEffect(() => {
     listarRegistros();
+    listarRegistrosInactivos();
   }, []);
 
   const columnas = [
@@ -421,8 +574,6 @@ function Empleados() {
   ];
 
   const eliminarRegistro = async () => {
-
-
     if (!accessToken) {
       setStateEmpleados((prev) => ({
         ...prev,
@@ -450,6 +601,7 @@ function Empleados() {
         setIsModalOpenDelete(false);
         setToDeleteId(null);
         listarRegistros();
+        listarRegistrosInactivos();
       } else {
         setStateEmpleados((prev) => ({
           ...prev,
@@ -467,6 +619,52 @@ function Empleados() {
     }
   };
 
+  const restaurarRegistro = async () => {
+    if (!accessToken) {
+      setStateEmpleados((prev) => ({
+        ...prev,
+        error: true,
+        errorMsg: "Token no encontrado",
+      }));
+      console.log("Token no encontrado");
+    }
+
+    try {
+      const apiRestaurarRegistro = `${apiRestaurar}${toRestoreId}`;
+
+      const response = await fetch(apiRestaurarRegistro, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        console.log("Empleado restaurado");
+        setIsModalOpenRestore(false);
+        setToRestoreId(null);
+        listarRegistros();
+        listarRegistrosInactivos();
+      } else {
+        setStateEmpleados((prev) => ({
+          ...prev,
+          error: true,
+          errorMsg: data.message || `ERROR http: ${response.status}`,
+        }));
+      }
+    } catch (error) {
+      setStateEmpleados((prev) => ({
+        ...prev,
+        error: true,
+        errorMsg: "Error de conexion al intentar retaurar",
+      }));
+
+      console.log("Error: ", error);
+    }
+  };
+
   const editarRegistro = async (
     idEditar: number,
     datosEditar: Partial<{
@@ -474,6 +672,9 @@ function Empleados() {
       lastname: string;
       ci: string;
       rol: string;
+      telefono: string;
+      correo: string;
+      contacts: Contact[];
     }>
   ) => {
     if (!accessToken) {
@@ -484,7 +685,7 @@ function Empleados() {
       }));
       return;
     }
-    console.log(datosEditar);
+    console.log("Los datos:", datosEditar);
 
     try {
       const apiEditarRegistro = `${apiEditar}${idEditar}`;
@@ -529,12 +730,67 @@ function Empleados() {
     }
   };
 
+  const cambiarVista = (nuevaVista: "activos" | "inactivos") => {
+    setVistaActual(nuevaVista);
+
+    if (nuevaVista === "activos") {
+      listarRegistros("");
+    } else {
+      listarRegistrosInactivos("");
+    }
+  };
+
   const userDelete = (
     //Logica para el envío del formulario
-    <button onClick={eliminarRegistro}  className="btn bg-red-500 hover:bg-red-600 text-white">
+    <button
+      onClick={eliminarRegistro}
+      className="btn bg-red-500 hover:bg-red-600 text-white"
+    >
       Eliminar
     </button>
   );
+
+  const userRestore = (
+    <button
+      onClick={restaurarRegistro}
+      className="btn bg-blue-500 hover:bg-blue-600 text-white"
+    >
+      Restaurar
+    </button>
+  );
+
+  const userRegistro = (
+    <button
+      form="FormularioEmpleado"
+      className="btn bg-blue-500 hover:bg-blue-600 text-white"
+    >
+      Registrar
+    </button>
+  );
+
+  const userEdit = (
+    <button
+      form="FormularioEditarEmpleado"
+      className="btn bg-blue-500 hover:bg-blue-600 text-white"
+    >
+      Editar
+    </button>
+  );
+
+  const funcionBusqueda =
+    vistaActual === "activos" ? listarRegistros : listarRegistrosInactivos;
+
+  const isLoading =
+    vistaActual === "activos" ? isLoadingActivos : isLoadingInactivos;
+
+  const onEditHandler =
+    vistaActual === "activos" ? handleOpenModalEdit : undefined;
+
+  const onDeleteHandler =
+    vistaActual === "activos" ? handleOpenModalDelete : undefined;
+
+  const onRestoreHandler =
+    vistaActual === "activos" ? undefined : handleOpenModalRestore;
 
   return (
     <>
@@ -555,16 +811,47 @@ function Empleados() {
         )}
         <section className="flex flex-col flex-grow items-center w-full pl-4 pr-4">
           <ToolBar
+            key={vistaActual}
             titulo="Empleados"
-            onSearch={listarRegistros}
+            onSearch={funcionBusqueda}
             onRegister={handleOpenModal}
           />
-          <Table
-            data={stateEmpleados.registros}
-            columnas={columnas}
-            onDelete={handleOpenModalDelete}
-            onEdit={handleOpenModalEdit}
-          />
+          <div className="w-full  flex items-center justify-around border border-gray-400 border-b-white rounded-lg rounded-b-none  shadow-md bg-white p-2">
+            <button
+              onClick={() => cambiarVista("activos")}
+              className={` ${
+                vistaActual === "activos"
+                  ? "py-1 px-2 border-b-3  border-green-500 transition duration-300 cursor-pointer"
+                  : "cursor-pointer"
+              }`}
+            >
+              Empleados Activos ({stateEmpleados.registros.length})
+            </button>
+            <button
+              onClick={() => cambiarVista("inactivos")}
+              className={` ${
+                vistaActual === "inactivos"
+                  ? "py-1 px-2 border-b-3  border-red-400 transition duration-300 cursor-pointer "
+                  : "hover:bg-gray-100 transition-all cursor-pointer"
+              }`}
+            >
+              Empleados Inactivos ({stateEmpleadosInactivos.registros.length})
+            </button>
+          </div>
+          {isLoading ? (
+            <div className="w-full flex items-center justify-center py-12">
+              <span className="loading loading-spinner loading-xl"></span>
+            </div>
+          ) : (
+            <Table
+              data={datosRenderizar}
+              columnas={columnas}
+              onDelete={onDeleteHandler}
+              onEdit={onEditHandler}
+              onRestore={onRestoreHandler}
+              emptyMessage={`No hay empleados ${vistaActual}.`}
+            />
+          )}
         </section>
       </main>
 
@@ -767,10 +1054,10 @@ function Empleados() {
               Número de telefono:
             </label>
             <input
-              type="text"
+              type="number"
               name="telefono"
               value={empleadoEditar.telefono}
-              readOnly
+              onChange={handleInputChangeEdit}
               placeholder="Ingrese el Número de Telefono"
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
@@ -786,14 +1073,16 @@ function Empleados() {
               type="email"
               name="correo"
               value={empleadoEditar.correo}
-              readOnly
+              onChange={handleInputChangeEdit}
               placeholder="Ingrese el Correo Electrónico"
               className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
           </div>
           <div className="col-span-2 min-h-6 text-center p-0">
             {empleadoEditar.errorMsg && (
-              <span className="text-red-600 text-sm m-0">{empleadoEditar.errorMsg}</span>
+              <span className="text-red-600 text-sm m-0">
+                {empleadoEditar.errorMsg}
+              </span>
             )}
           </div>
         </form>
@@ -804,7 +1093,21 @@ function Empleados() {
         titulo="Eliminar Registro"
         acciones={userDelete}
       >
-        <p className="text-lg">¿Está seguro de eliminar al empleado {nombreEmpleado || 'Desconocido'}?</p>
+        <p className="text-lg">
+          ¿Está seguro de eliminar al empleado {nombreEmpleado || "Desconocido"}
+          ?
+        </p>
+      </Modal>
+      <Modal
+        isOpen={isModalOpenRestore}
+        onClose={handleCloseModalRestore}
+        titulo="Restaurar Registro"
+        acciones={userRestore}
+      >
+        <p className="text-lg">
+          ¿Está seguro de restaurar al empleado{" "}
+          {nombreEmpleado || "Desconocido"}?
+        </p>
       </Modal>
     </>
   );
