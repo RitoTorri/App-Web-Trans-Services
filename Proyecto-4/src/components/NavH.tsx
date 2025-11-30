@@ -36,7 +36,7 @@ function NavH() {
             <div className="mx-2 flex-1 flex items-center gap-2">
               {/* SVG del icono de bus, centrado al mismo nivel */}
               
-              <span className="text-3xl font-bold text-blue-600">
+              <span className="text-3xl font-bold ">
                 Bienvenido
               </span>
             </div>
@@ -45,7 +45,7 @@ function NavH() {
             <ul className="menu menu-horizontal">
               {/* Navbar menu content here */}
               <li>
-                <a>
+                <div className="p-4">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="16"
@@ -60,8 +60,8 @@ function NavH() {
                       d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1"
                     />
                   </svg>
-                  {nombreUsuario}
-                </a>
+                  <span>{nombreUsuario}</span>
+                </div>
               </li>
 
               <li>

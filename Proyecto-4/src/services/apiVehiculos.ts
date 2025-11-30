@@ -1,4 +1,4 @@
-export const apiRegistrar =  "http://localhost:3000/api/trans/services/vehicles/registerVehicle";
+export const apiRegistrar =  "http://localhost:3000/api/trans/services/registerVehicle";
 
 export const apiObtener = "http://localhost:3000/api/trans/services/vehicles/:license_plate";
 
