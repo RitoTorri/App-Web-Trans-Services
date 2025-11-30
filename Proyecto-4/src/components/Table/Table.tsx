@@ -33,7 +33,7 @@ function Table({
 }: TableProps) {
   if (data.length === 0) {
     return (
-      <div className="p-4 text-center text-gray-500 bg-gray-100 rounded-lg">
+      <div className="p-4 text-center text-gray-500 rounded-lg">
         {emptyMessage}
       </div>
     );

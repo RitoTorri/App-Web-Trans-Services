@@ -331,7 +331,9 @@ function Empleados() {
       !state.form.name ||
       !state.form.lastname ||
       !state.form.ci ||
-      !state.form.rol
+      !state.form.rol ||
+      !state.form.contact_email_info ||
+      !state.form.contact_phone_info
     ) {
       setState((prev) => ({
         ...prev,
@@ -388,7 +390,6 @@ function Empleados() {
         console.log("Registrado con exito");
 
         setSuccessMessage("Empleado registrado con éxito");
-        console.log("si");
         setState(initialState);
         handleCloseModal();
 
@@ -730,16 +731,7 @@ function Empleados() {
     }
   };
 
-  const cambiarVista = (nuevaVista: "activos" | "inactivos") => {
-    setVistaActual(nuevaVista);
-
-    if (nuevaVista === "activos") {
-      listarRegistros("");
-    } else {
-      listarRegistrosInactivos("");
-    }
-  };
-
+  
   const userDelete = (
     //Logica para el envío del formulario
     <button
@@ -776,6 +768,18 @@ function Empleados() {
       Editar
     </button>
   );
+
+  //funciones encargadas de las vistas:
+
+  const cambiarVista = (nuevaVista: "activos" | "inactivos") => {
+    setVistaActual(nuevaVista);
+
+    if (nuevaVista === "activos") {
+      listarRegistros("");
+    } else {
+      listarRegistrosInactivos("");
+    }
+  };
 
   const funcionBusqueda =
     vistaActual === "activos" ? listarRegistros : listarRegistrosInactivos;
@@ -1078,14 +1082,14 @@ function Empleados() {
               className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
           </div>
-          <div className="col-span-2 min-h-6 text-center p-0">
+        </form>
+        <div className="col-span-2 min-h-6 text-center p-0">
             {empleadoEditar.errorMsg && (
               <span className="text-red-600 text-sm m-0">
                 {empleadoEditar.errorMsg}
               </span>
             )}
           </div>
-        </form>
       </Modal>
       <Modal
         isOpen={isModalOpenDelete}

@@ -34,7 +34,7 @@ export interface Cliente extends Item{
 export interface Proveedor extends Item{
   nombre: string;
   rif: string;
-  contacto: string;
+  contacts: {contact_info: string}[];
 }
 
 export interface Vehiculo extends Item{

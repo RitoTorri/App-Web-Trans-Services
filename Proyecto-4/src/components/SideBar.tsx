@@ -21,7 +21,7 @@ function SideBar() {
       <aside className="fixed top-0 left-0 lg:w-64 xl:w-68  flex-none bg-gray-800 text-white p-4 space-y-4 h-screen shadow-xl flex flex-col z-40 hidden sm:flex">
         <Link
           to="/paginainicio"
-          className="text-2xl font-bold text-center p-5 border-b-2 flex gap-2 items-center"
+          className="text-2xl font-bold text-center p-4 border-b-2 items-center"
         >
           Trans Services 
           
