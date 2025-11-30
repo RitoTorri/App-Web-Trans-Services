@@ -1,0 +1,1 @@
+export const apiObtenerTipo = "http://localhost:3000/api/trans/services/list";
