@@ -37,10 +37,11 @@ export interface Proveedor extends Item{
 }
 
 export interface Vehiculo extends Item{
-  placa: string;
-  total_asientos: string;
-  tipo: string;
-  
+    driver_id:number,
+    model:string,
+    license_plate:string,
+    total_seats:number,
+    vehicle_type_id:number
 }
 
 export interface Nomina extends Item {
@@ -50,6 +51,12 @@ export interface Nomina extends Item {
     daily_salary: number; // Cambiado de 'salario_diario'
     total_days_paid: number; // Cambiado de 'total_dias_pagados'
     ivss: number;         // Nuevo campo obligatorio
-    pie: number;          // Nuevo campo obligatorio
+    pie: number;          // Nuevo campo obligatoriove
     faov: number;         // Nuevo campo obligatorio
+}
+
+export interface TipoVehiculo extends Item {
+    type_name: string;   
+    description: string; 
+    created_at: string; 
 }

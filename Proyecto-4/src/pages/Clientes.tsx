@@ -75,6 +75,8 @@ function Clientes() {
 
   const [camposModificados, setCamposModificados] = useState<Partial<ClienteEditarState>>({});
 
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
@@ -420,7 +422,7 @@ function Clientes() {
             onSearch={listarRegistros}
           />
           {isLoading ? (
-             <div className="w-full flex items-center justify-center py-6">
+              <div className="w-full flex items-center justify-center py-6">
         <span className="loading loading-spinner loading-xl"></span>
       </div>
           ) : (
