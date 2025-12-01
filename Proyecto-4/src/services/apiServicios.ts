@@ -1,0 +1,1 @@
+export const apiRegistrar = "http://localhost:3000/api/trans/services/offered/services"

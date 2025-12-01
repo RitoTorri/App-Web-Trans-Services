@@ -13,14 +13,12 @@ export interface Empleado extends Item {
 }
 
 export interface Servicio extends Item {
-  nombre_cliente: string;
-  placa_vehiculo: string;
-  hora_inicio: string;
-  hora_finalizacion: string;
-  precio: string;
-  estado_pago: string;
-  salida: string;
-  llegada: string;
+  vehicle_id: number;
+  client_id: number;
+  price: number;
+  start_date: Date;
+  end_date: Date;
+  isrl: number;
 }
 
 export interface Cliente extends Item {

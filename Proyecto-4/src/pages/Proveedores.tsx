@@ -90,7 +90,11 @@ const transformarRegistros = (registrosApi: Proveedor[]): Item[] => {
   return registrosApi.map((proveedor) => {
     const contacts = proveedor.provider_contacts || [];
     const emailObj = contacts.find((c: any) => c.contact_info.includes("@"));
-    const phoneObj = contacts.find((c: any) => c.id !== emailObj.id);
+    let phoneObj
+    
+    if(emailObj){
+      phoneObj = contacts.find((c: any ) => c.id !== emailObj.id)
+    }
 
     return {
       ...proveedor,
@@ -604,6 +608,7 @@ function Proveedores() {
   const [isModalOpenRestore, setIsModalOpenRestore] = useState(false);
 
   const handleOpenModal = () => {
+    setState(initialState)
     setIsModalOpen(true);
   };
 

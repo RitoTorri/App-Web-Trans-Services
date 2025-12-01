@@ -468,6 +468,7 @@ function Vehiculos() {
   //};
 
   const handleOpenModal = () => {
+    setState(initialState)
     setIsModalOpen(true);
   };
 

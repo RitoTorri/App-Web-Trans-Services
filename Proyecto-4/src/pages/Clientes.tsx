@@ -146,6 +146,43 @@ function Clientes() {
 
   const numero = partes.slice(1).join("-");
 
+  const onRifChangeEdit = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    part: "tipo" | "numero"
+  ) => {
+    const currentRif = clienteEditar.rif || "V-";
+    const partes = currentRif.split("-");
+
+    const currentType = partes[0]
+    const currentNumber = partes.slice(1).join("-")
+
+    let newValue = ""
+
+    if(part === "tipo"){
+      newValue = `${e.target.value}-${currentNumber || ""}`
+    }else{
+      newValue = `${currentType || "V"}-${e.target.value}`
+    }
+
+    setClienteEditar((prevState) => ({
+      ...prevState,
+      rif: newValue,
+      error: false,
+      errorMsg: ""
+    }))
+
+    setCamposModificados((prevFields) => ({
+      ...prevFields,
+      rif: newValue
+    }))
+  }
+
+  const rifCompletoEdit = clienteEditar.rif || "";
+  const partesEdit = rifCompletoEdit.split("-") 
+
+  const letrasEdit = partesEdit[0]
+  const numerosEdit = partesEdit.slice(1).join("-")
+
   //Cargar registros clientes
   const listarRegistros = async (terminoBusqueda = "") => {
     setIsLoading(true);
@@ -413,6 +450,7 @@ function Clientes() {
   const [isModalOpenEdit, setIsModalOpenEdit] = useState(false);
 
   const handleOpenModal = () => {
+    setState(initialState)
     setIsModalOpen(true);
   };
 
@@ -430,6 +468,8 @@ function Clientes() {
       error: false,
       errorMsg: "",
     });
+
+    setCamposModificados({})
     setIsModalOpenEdit(true);
   };
 
@@ -606,14 +646,27 @@ function Clientes() {
             >
               RIF:
             </label>
+            <div className="flex items-center w-full gap-1">
+              <select
+               name="tipoRif"
+               onChange={(e) => onRifChangeEdit(e, "tipo")}
+               value={letrasEdit}
+               className="bg-white rounded-md mb-2 shadow-xs p-3 border  border-gray-400 cursor-pointer font-semibold focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+              >
+                <option value="V">V</option>
+                <option value="J">J</option>
+                <option value="E">E</option>
+                <option value="G">G</option>
+              </select>
             <input
               type="text"
               name="rif"
-              value={clienteEditar.rif}
-              onChange={handleInputChangeEdit}
+              value={numerosEdit}
+              onChange={(e) => onRifChangeEdit(e, "numero")}
               placeholder="Ingrese el RIF"
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
+            </div>
           </div>
 
           <div>

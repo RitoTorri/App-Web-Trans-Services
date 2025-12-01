@@ -491,6 +491,7 @@ function Empleados() {
   const [isModalOpenRestore, setIsModalOpenRestore] = useState(false);
 
   const handleOpenModal = () => {
+    setState(initialState)
     setIsModalOpen(true);
   };
 
