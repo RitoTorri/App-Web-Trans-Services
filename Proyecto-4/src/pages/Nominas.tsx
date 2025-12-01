@@ -247,14 +247,14 @@ function Nominas() {
 
         setState((prevState) => ({ ...prevState, error: false, errorMsg: "" }));
 
-        if (!accessToken) {
-            setState((prevState) => ({
-                ...prevState,
-                error: true,
-                errorMsg: "Token no encontrado. Por favor inicie sesión nuevamente.",
-            }));
-            return;
-        }
+//        if (!accessToken) {
+//            setState((prevState) => ({
+//                ...prevState,
+//                error: true,
+//                errorMsg: "Token no encontrado. Por favor inicie sesión nuevamente.",
+//            }));
+//            return;
+//        }
 
         if (
             !state.form.employee_id ||
@@ -532,6 +532,13 @@ function Nominas() {
         setIsModalOpen(false);
     };
 
+    const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const nuevoStatus = e.target.value;
+        if (nominaEditar.id !== null) {
+            editarStatusRegistro(nominaEditar.id, nuevoStatus);
+        }
+    };
+
     const handleOpenModalEdit = (nomina: Item) => {
         setNominaEditar({
             id: nomina.id,
@@ -550,18 +557,9 @@ function Nominas() {
         setIsModalOpenEdit(true);
     };
 
-
-    const handleCloseModalEdit = () => {
+        const handleCloseModalEdit = () => {
         setIsModalOpenEdit(false);
     };
-
-    const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const nuevoStatus = e.target.value;
-        if (nominaEditar.id !== null) {
-            editarStatusRegistro(nominaEditar.id, nuevoStatus);
-        }
-    };
-
 
     return (
         <>
@@ -579,8 +577,6 @@ function Nominas() {
                     <Table data={stateNominas.registros} columnas={columnas} onEdit={handleOpenModalEdit} />
                 </section>
             </main>
-
-            {/* Modal de Registro */}
             <Modal isOpen={isModalOpen} onClose={handleCloseModal} titulo="Registrar Nueva Nómina" acciones={userRegistro}>
                 <form id="FormularioNomina" onSubmit={manejadorSubmit} className="grid grid-cols-2 gap-3">
                     <div>
