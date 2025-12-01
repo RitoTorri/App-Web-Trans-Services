@@ -1,4 +1,4 @@
-export const apiRegistrar = "http://localhost:3000/api/trans/services/payroll";
+export const apiRegistrar = "http://localhost:3000/api/trans/services/payrolls";
 
 export const apiObtener = "http://localhost:3000/api/trans/services/payrolls/search";
 
