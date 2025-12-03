@@ -1,5 +1,7 @@
 import type { Item } from "../../types/models";
 
+
+
 export interface ConfiguracionColumna {
   key: string;
   header: string;
@@ -12,6 +14,6 @@ export interface TableProps {
   onEdit?: (item: Item) => void;
   onDelete?: (id: number, nombre?: string) => void;
   onRestore?: (id:number, nombre?:string) => void;
-
+  onView?: (item: Item ) => void;
   emptyMessage?: string;
 }

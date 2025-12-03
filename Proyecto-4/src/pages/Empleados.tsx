@@ -9,6 +9,7 @@ import {
   apiElminar,
   apiEditar,
   apiRestaurar,
+  apiExportar
 } from "../services/apiEmpleados";
 
 interface Contact {
@@ -130,6 +131,7 @@ function Empleados() {
 
   const [isLoadingActivos, setIsLoadingActivos] = useState<boolean>(true);
   const [isLoadingInactivos, setIsLoadingInactivos] = useState<boolean>(true);
+  const [isExportar, setIsExportar] = useState<boolean>(false)
 
   const [camposModificados, setCamposModificados] = useState<
     Partial<EmpleadoEditarState>
@@ -482,6 +484,56 @@ function Empleados() {
     }
   };
 
+  const exportarRegistros = async () => {
+      if(!accessToken){
+        console.log("Token no encontrado")
+        return
+      }
+  
+      setIsExportar(true)
+  
+      try {
+        const response = await fetch(apiExportar, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        })
+  
+        if(!response.ok){
+          const errorMsg = await response.text()
+          try{
+            const errorData = JSON.parse(errorMsg)
+            console.error("Error al exporatar: ", errorData.message)
+          }catch{
+            console.error("Error desconocido: ", errorMsg)
+          }
+        }
+  
+        const blob = await response.blob()
+  
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+  
+        a.href = url
+  
+        a.download = 'reporte_empleados.pdf'
+        
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+  
+        window.URL.revokeObjectURL(url)
+  
+        console.log("Reporte descargado")
+        
+      } catch (error) {
+        console.error("Error del servidor: ", error)
+      }finally{
+        setIsExportar(false)
+      }
+    }
+
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [isModalOpenEdit, setIsModalOpenEdit] = useState(false);
@@ -820,6 +872,8 @@ function Empleados() {
             titulo="Empleados"
             onSearch={funcionBusqueda}
             onRegister={handleOpenModal}
+            onExport={exportarRegistros}
+            isExporting={isExportar}
           />
           <div className="w-full  flex items-center justify-around border border-gray-400 border-b-white rounded-lg rounded-b-none  shadow-md bg-white p-2">
             <button

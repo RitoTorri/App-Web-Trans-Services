@@ -3,7 +3,7 @@ import ToolBar from "../components/Table/ToolBar";
 import type { Item } from "../types/models";
 import Modal from "../components/Modal/Modal";
 import React, { useEffect, useState } from "react";
-import { apiRegistrar, apiObtener, apiEditar } from "../services/apiClientes";
+import { apiRegistrar, apiObtener, apiEditar, apiExportar } from "../services/apiClientes";
 
 interface RegisterFormState {
   name: string;
@@ -80,6 +80,7 @@ function Clientes() {
   >({});
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isExportar, setIsExportar] = useState<boolean>(false)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -417,6 +418,56 @@ function Clientes() {
     }
   };
 
+  const exportarRegistros = async () => {
+    if(!accessToken){
+      console.log("Token no encontrado")
+      return
+    }
+
+    setIsExportar(true)
+
+    try {
+      const response = await fetch(apiExportar, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      })
+
+      if(!response.ok){
+        const errorMsg = await response.text()
+        try{
+          const errorData = JSON.parse(errorMsg)
+          console.error("Error al exporatar: ", errorData.message)
+        }catch{
+          console.error("Error desconocido: ", errorMsg)
+        }
+      }
+
+      const blob = await response.blob()
+
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+
+      a.href = url
+
+      a.download = 'reporte_clientes_.pdf'
+      
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+
+      window.URL.revokeObjectURL(url)
+
+      console.log("Reporte descargado")
+      
+    } catch (error) {
+      console.error("Error del servidor: ", error)
+    }finally{
+      setIsExportar(false)
+    }
+  }
+
   const columnas = [
     { key: "name", header: "Nombre" },
     { key: "rif", header: "Rif" },
@@ -499,17 +550,26 @@ function Clientes() {
             titulo="Clientes"
             onRegister={handleOpenModal}
             onSearch={listarRegistros}
+            onExport={exportarRegistros}
+            isExporting={isExportar}
           />
           {isLoading ? (
             <div className="w-full flex items-center justify-center py-6">
               <span className="loading loading-spinner loading-xl"></span>
             </div>
           ) : (
+            <>
+            <div className="flex flex-row mb-4 w-full">
+              <div className="p-4 bg-white border border-gray-400 rounded-lg shadow-sm">
+                <span>Total: {stateClientes.registros.length}</span>
+              </div>
+            </div>
             <Table
               data={stateClientes.registros}
               columnas={columnas}
               onEdit={handleOpenModalEdit}
             />
+            </>
           )}
         </section>
       </main>

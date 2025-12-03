@@ -74,7 +74,6 @@ function InicioSesion() {
         localStorage.setItem("token", data.details.token);
         localStorage.setItem("username",data.details.user.username)
         
-        console.log(localStorage.getItem('username'))
         navigate("/paginainicio", { replace: true });
       } else {
         setState((prevState) => ({
@@ -118,7 +117,7 @@ function InicioSesion() {
             />
           </div>
           <div className="mt-32">
-          <h1 className="text-4xl mb-15 text-center uppercase font-extrabold font-sans text-white">Iniciar Sesión</h1>
+          <h1 className="text-4xl mb-15 text-center uppercase font-bold font-sans text-white">Iniciar Sesión</h1>
           <form
             onSubmit={manejadorSubmit}
             className="flex flex-col w-lg gap-2"
@@ -164,7 +163,7 @@ function InicioSesion() {
             <div>
               <label
                 htmlFor="contraseña"
-                className="block text-sm text-white font-medium text-gray-700 mb-1"
+                className="block text-sm text-white font-medium mb-1"
               >
                 Contraseña:
               </label>
@@ -200,9 +199,9 @@ function InicioSesion() {
                 />
               </div>
             </div>
-            <div className="min-h-6">
+            <div className="min-h-6 w-full flex items-center justify-center">
               {state.error && (
-                <span className="text-center text-red-500 text-sm m-0">
+                <span className="text-center text-white text-sm m-0">
                   {state.errorMsg}
                 </span>
               )}

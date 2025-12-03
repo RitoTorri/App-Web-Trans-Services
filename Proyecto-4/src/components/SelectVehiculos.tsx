@@ -69,8 +69,8 @@ const SelectVehiculos: React.FC<SelectVehiculosProps> = ({
             <>
             <label htmlFor="vehiculoError" className="block text-sm font-medium text-gray-700 mb-1">Vehículo</label>
             <div>
-            <select name="vehiculoError">
-                <option disabled>Error</option>
+            <select disabled name="vehiculoError" className="max-h-64 overflow-y-auto border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in">
+                <option value="Error">Error</option>
             </select>
             </div>
             </>
@@ -89,7 +89,7 @@ const SelectVehiculos: React.FC<SelectVehiculosProps> = ({
       <div>
       <select
         name="vehiculoSeleccionado"
-        id="cliente-select"
+        id="vehiculo-select"
         onChange={handleSelectChange}
         className="max-h-64 overflow-y-auto border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
       >
@@ -97,7 +97,7 @@ const SelectVehiculos: React.FC<SelectVehiculosProps> = ({
 
         {vehiculos.map((vehiculo) => (
           <option key={vehiculo.id} value={vehiculo.id}>
-            {vehiculo.model} {vehiculo.license_plate}
+            {vehiculo.license_plate}
           </option>
         ))}
       </select>

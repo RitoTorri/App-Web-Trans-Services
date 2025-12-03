@@ -1,9 +1,8 @@
-import type { ConfiguracionColumna, TableProps } from "./Table.types";
-import type { Item } from "../../types/models";
+import type { ConfiguracionColumna, TableProps} from "./Table.types";
+import type{ Item } from "../../types/models";
 
-// utils/paymentStyles.ts (o directamente en tu componente)
 
-type PaymentStatus = "No Pagado" | "Pagado" | "Pendiente";
+type PaymentStatus = "canceled" | "paid" | "pending";
 
 /**
  * Devuelve las clases Tailwind para el color de fondo y texto del estado de pago.
@@ -12,11 +11,11 @@ type PaymentStatus = "No Pagado" | "Pagado" | "Pendiente";
  */
 export const getStatusClasses = (status: PaymentStatus): string => {
   switch (status) {
-    case "Pagado":
+    case "paid":
       return "bg-green-100 text-green-800 border-green-400";
-    case "Pendiente":
+    case "pending":
       return "bg-yellow-100 text-yellow-800 border-yellow-400";
-    case "No Pagado":
+    case "canceled":
       return "bg-red-100 text-red-800 border-red-400";
     default:
       return "bg-gray-100 text-gray-800";
@@ -29,6 +28,7 @@ function Table({
   onDelete,
   onEdit,
   onRestore,
+  onView,
   emptyMessage = "No hay registros que mostrar.",
 }: TableProps) {
   if (data.length === 0) {
@@ -68,7 +68,7 @@ function Table({
                     className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center"
                   >
                     {col.key === "actions" ? (
-                      onEdit || onDelete || onRestore ? (
+                      onEdit || onDelete || onRestore || onView ? (
                         <div className="flex space-x-2 justify-center">
                           {onRestore && (
                             <button
@@ -97,6 +97,25 @@ function Table({
                                   d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2z"
                                 />
                                 <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466" />
+                              </svg>
+                            </button>
+                          )}
+                          {onView && (
+                            <button
+                              onClick={() => onView(item)}
+                              title="Ver Detalles"
+                              className="btn text-blue-600 hover:text-blue-900 font-medium transition-colors"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="20"
+                                height="20"
+                                fill="currentColor"
+                                className="bi bi-eye"
+                                viewBox="0 0 16 16"
+                              >
+                                <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" />
+                                <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" />
                               </svg>
                             </button>
                           )}
@@ -157,13 +176,13 @@ function Table({
                         className={`
                 px-3 py-1 inline-flex text-sm leading-5 font-semibold 
                 rounded-lg border 
-                ${getStatusClasses(item[col.key])}
+                ${getStatusClasses(item[col.key] as PaymentStatus)}
               `}
                       >
                         {item[col.key] as string}
                       </span>
                     ) : (
-                      item[col.key]
+                      (item as any)[col.key]
                     )}
                   </td>
                 ))}

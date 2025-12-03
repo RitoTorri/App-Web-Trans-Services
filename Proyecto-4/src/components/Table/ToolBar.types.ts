@@ -4,4 +4,6 @@ export interface ToolBarProps {
   onSearch: (searchTerm: string) => void;
 
   onRegister: () => void;
+  onExport?: () => void;
+  isExporting?: boolean;
 }
