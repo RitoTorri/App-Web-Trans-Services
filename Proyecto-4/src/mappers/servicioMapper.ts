@@ -1,5 +1,21 @@
 import type { ServicioApi, ItemPlana } from "../types/servicos";
 
+export type EnglishStatus = "pending" | "paid" | "canceled";
+type SpanishStatus = "Pendiente" | "Pagado" | "Cancelado"
+
+export const traducirEstado = (status: EnglishStatus) : SpanishStatus => {
+    switch(status){
+        case "pending":
+            return "Pendiente";
+        case "paid": 
+            return "Pagado";
+        case "canceled":
+            return "Cancelado";
+        default:
+            return "Desconocido" as SpanishStatus            
+    }
+}
+
 export const mapServiciosToTabla = (registrosApi: ServicioApi[]): ItemPlana[] => {
     return registrosApi.map(registro => {
         const fechaFactura =  registro.services.invoice_date
@@ -8,13 +24,15 @@ export const mapServiciosToTabla = (registrosApi: ServicioApi[]): ItemPlana[] =>
 
         const montoFinal = `${registro.totalAmount.toFixed(2)}`
 
+        const estatoTraducido = traducirEstado(registro.services.payment_status as EnglishStatus)
+
         return{
             id: registro.services.id,
 
             factura: registro.services.invoice_number,
             cliente: registro.client.name,
             placa: registro.vehicle.license_plate,
-            estado_pago: registro.services.payment_status,
+            estado_pago: estatoTraducido,
 
             fecha_factura: fechaFactura,
             monto_final: montoFinal

@@ -14,6 +14,8 @@ import {
 } from "../services/apiServicios";
 import type { ServicioApi, ItemPlana } from "../types/servicos";
 import { mapServiciosToTabla } from "../mappers/servicioMapper";
+import type { EnglishStatus} from "../mappers/servicioMapper";
+import { traducirEstado } from "../mappers/servicioMapper";
 
 interface RegisterFormState {
   vehicle_id: number;
@@ -270,7 +272,6 @@ function Servicios() {
 
       if (response.ok && data.success) {
         const registrosApi = data.details;
-        console.log("Datos: ", registrosApi);
         setStateServicio((prev) => ({
           ...prev,
           registros: registrosApi,
@@ -380,6 +381,9 @@ function Servicios() {
     }, contador);
   }, [stateServicio.registros]);
 
+  const estadoOriginal = registroSeleccionado?.services.payment_status as EnglishStatus
+  const estadoEspanol = traducirEstado(estadoOriginal)
+
   const renderDetallesBody = useMemo(() => {
     if (!registroSeleccionado) return null;
 
@@ -480,14 +484,14 @@ function Servicios() {
             <span
               className={`px-3 py-1 rounded-full text-xs font-bold uppercase
                 ${
-                  registroSeleccionado.services.payment_status === "paid"
+                    estadoEspanol === "Pagado"
                     ? "bg-green-100 text-green-700"
-                    : registroSeleccionado.services.payment_status === "pending"
+                    : estadoEspanol === "Pendiente"
                     ? "bg-yellow-100 text-yellow-700"
                     : "bg-red-100 text-red-700"
                 }`}
             >
-              Estado: {registroSeleccionado.services.payment_status}
+              Estado: {estadoEspanol}
             </span>
           </div>
         </div>
@@ -511,7 +515,7 @@ function Servicios() {
           onClick={() => {
             if (
               window.confirm(
-                "¿Estás seguro de que deseas CANCELAR este servicio?"
+                "¿Estás seguro de que deseas cancelar este servicio?"
               )
             ) {
               actualizarEstadoPagp(id, "canceled");
