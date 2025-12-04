@@ -3,7 +3,7 @@ import PaginaInicio from "./pages/PaginaInicio";
 import InicioSesion from "./pages/InicioSesion";
 import Empleados from "./pages/Empleados";
 import Servicios from "./pages/Servicios";
-import Cuentas from "./pages/Cuentas";
+import Compras from "./pages/Compras";
 import Proveedores from "./pages/Proveedores";
 import Clientes from "./pages/Clientes";
 import Nominas from "./pages/Nominas";
@@ -21,7 +21,7 @@ function App() {
           <Route path="/paginainicio" element={<PaginaInicio />} />
           <Route path="/empleados" element={<Empleados />} />
           <Route path="/servicios" element={<Servicios />} />
-          <Route path="/cuentas" element={<Cuentas />} />
+          <Route path="/cuentas" element={<Compras />} />
           <Route path="/proveedores" element={<Proveedores />} />
           <Route path="/clientes" element={<Clientes />} />
           <Route path="/vehiculos" element={<Vehiculos />} />

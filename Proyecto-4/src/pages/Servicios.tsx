@@ -52,7 +52,7 @@ interface ServiciosState {
 }
 
 const initialServiciosState: ServiciosState = {
-  registros: [] as ServicioApi[],
+  registros: [] as  [],
   error: false,
   errorMsg: "",
 };

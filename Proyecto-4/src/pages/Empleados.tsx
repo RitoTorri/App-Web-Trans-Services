@@ -386,8 +386,6 @@ function Empleados() {
         body: JSON.stringify(datoToSend),
       });
 
-      console.log("", datoToSend);
-
       if (response.ok) {
         console.log("Registrado con exito");
 
@@ -407,7 +405,7 @@ function Empleados() {
           ...prev,
           error: true,
           errorMsg:
-            "Ya existe un dato registrado, verifica que no hayas usado antes la cédula, correo o télefono.",
+            "Error al registrar, verifique los datos ingresados.",
         }));
       }
     } catch (error) {

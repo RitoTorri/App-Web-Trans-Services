@@ -2,7 +2,7 @@ import type { ConfiguracionColumna, TableProps} from "./Table.types";
 import type{ Item } from "../../types/models";
 
 
-type PaymentStatus = "Cancelado" | "Pagado" | "Pendiente";
+type PaymentStatus = "Cancelado" | "Pagado" | "Pendiente" | "pendiente" | "pagado";
 
 /**
  * Devuelve las clases Tailwind para el color de fondo y texto del estado de pago.
@@ -13,7 +13,11 @@ export const getStatusClasses = (status: PaymentStatus): string => {
   switch (status) {
     case "Pagado":
       return "bg-green-100 text-green-800 border-green-400";
+    case "pagado":
+      return "bg-green-100 text-green-800 border-green-400"
     case "Pendiente":
+      return "bg-yellow-100 text-yellow-800 border-yellow-400";
+    case "pendiente":
       return "bg-yellow-100 text-yellow-800 border-yellow-400";
     case "Cancelado":
       return "bg-red-100 text-red-800 border-red-400";
@@ -171,7 +175,7 @@ function Table({
                           )}
                         </div>
                       ) : null
-                    ) : col.key === "estado_pago" ? (
+                    ) : col.key === "estado_pago" || col.key === "status" ? (
                       <span
                         className={`
                 px-3 py-1 inline-flex text-sm leading-5 font-semibold 

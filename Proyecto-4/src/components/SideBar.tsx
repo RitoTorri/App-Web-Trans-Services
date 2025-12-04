@@ -23,8 +23,7 @@ function SideBar() {
           to="/paginainicio"
           className="text-2xl font-bold text-center p-4 border-b-2 items-center"
         >
-          Trans Services 
-          
+          Trans Services
         </Link>
         <nav className="flex flex-col space-y-4">
           <NavLink to="/empleados" className={getNavLinkClass}>
@@ -89,12 +88,12 @@ function SideBar() {
               width="20"
               height="20"
               fill="currentColor"
-              className="bi bi-bank"
+              className="bi bi-wallet"
               viewBox="0 0 16 16"
             >
-              <path d="m8 0 6.61 3h.89a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5H15v7a.5.5 0 0 1 .485.38l.5 2a.498.498 0 0 1-.485.62H.5a.498.498 0 0 1-.485-.62l.5-2A.5.5 0 0 1 1 13V6H.5a.5.5 0 0 1-.5-.5v-2A.5.5 0 0 1 .5 3h.89zM3.777 3h8.447L8 1zM2 6v7h1V6zm2 0v7h2.5V6zm3.5 0v7h1V6zm2 0v7H12V6zM13 6v7h1V6zm2-1V4H1v1zm-.39 9H1.39l-.25 1h13.72z" />
+              <path d="M0 3a2 2 0 0 1 2-2h13.5a.5.5 0 0 1 0 1H15v2a1 1 0 0 1 1 1v8.5a1.5 1.5 0 0 1-1.5 1.5h-12A2.5 2.5 0 0 1 0 12.5zm1 1.732V12.5A1.5 1.5 0 0 0 2.5 14h12a.5.5 0 0 0 .5-.5V5H2a2 2 0 0 1-1-.268M1 3a1 1 0 0 0 1 1h12V2H2a1 1 0 0 0-1 1" />
             </svg>
-            Cuentas
+            Compras
           </NavLink>
 
           <NavLink to="/vehiculos" className={getNavLinkClass}>
@@ -125,7 +124,6 @@ function SideBar() {
             Provedores
           </NavLink>
         </nav>
-
 
         <div className="mt-auto">
           <button
