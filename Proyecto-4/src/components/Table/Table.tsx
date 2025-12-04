@@ -1,5 +1,5 @@
-import type { ConfiguracionColumna, TableProps} from "./Table.types";
-import type{ Item } from "../../types/models";
+import type { ConfiguracionColumna, TableProps } from "./Table.types";
+import type { Item } from "../../types/models";
 
 
 type PaymentStatus = "canceled" | "paid" | "pending";
@@ -67,7 +67,9 @@ function Table({
                     key={col.key}
                     className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center"
                   >
-                    {col.key === "actions" ? (
+                    {col.render ? (
+                      col.render(item)
+                    ) : col.key === "actions" ? (
                       onEdit || onDelete || onRestore || onView ? (
                         <div className="flex space-x-2 justify-center">
                           {onRestore && (

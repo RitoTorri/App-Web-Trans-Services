@@ -1,13 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import Table from "../components/Table/Table";
 import ToolBar from "../components/Table/ToolBar";
-import type { Nomina, Item, Empleado } from "../types/models";
+import type { Item, Empleado } from "../types/models";
 import Modal from "../components/Modal/Modal";
 import {
     apiRegistrar,
     apiObtener,
     apiEditar,
-} from "../services/apiNominas.ts";
+    apiModificarStatus,
+} from "../services/apiNominas";
 import { apiObtener as apiObtenerEmpleados } from "../services/apiEmpleados";
 
 const formatDate = (date: Date | string): string => {
@@ -18,7 +19,7 @@ const formatDate = (date: Date | string): string => {
     return String(date).split('T')[0];
 };
 
-// Interfaces actualizadas para coincidir con la API
+// Interfaces
 interface RegisterFormState {
     employee_id: number;
     period_start: Date;
@@ -52,13 +53,13 @@ const initialState: RegisterState = {
 };
 
 interface NominasState {
-    registros: Item[];
+    registros: any[]; // Usamos any para manejar la estructura compleja de la API
     error: boolean;
     errorMsg: string;
 }
 
 const initialStateNominas: NominasState = {
-    registros: [] as Item[],
+    registros: [],
     error: false,
     errorMsg: "",
 };
@@ -102,6 +103,13 @@ function Nominas() {
     const [nominaEditar, setNominaEditar] = useState<NominaEditarState>(initialStateNominaEditar);
     const [camposModificados, setCamposModificados] = useState<Partial<NominaEditarState>>({});
     const [listaEmpleados, setListaEmpleados] = useState<Empleado[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+
+    // Modals
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isModalOpenEdit, setIsModalOpenEdit] = useState(false);
+    const [isModalOpenDetalles, setIsModalOpenDetalles] = useState(false);
+    const [registroSeleccionado, setRegistroSeleccionado] = useState<any | null>(null);
 
     const cargarEmpleados = async () => {
         if (!accessToken) return;
@@ -170,17 +178,30 @@ function Nominas() {
     };
 
     const listarRegistros = async (terminoBusqueda = "") => {
+        setIsLoading(true);
         if (!accessToken) {
             setStateNominas((prevState) => ({
                 ...prevState,
                 error: true,
                 errorMsg: "Token no encontrado",
             }));
-            console.error("DEBUG: Token no encontrado.");
             return;
         }
 
-        const filterBody = terminoBusqueda ? { filterSearch: { status: terminoBusqueda } } : {};
+        // Si terminoBusqueda es un estado válido, filtramos por estado.
+        // Si es una fecha, podríamos filtrar por fecha (no implementado en este ejemplo simple)
+        // Si es vacío, traemos todo.
+        let filterSearchPayload = {};
+        if (terminoBusqueda) {
+            if (['draft', 'paid', 'cancelled'].includes(terminoBusqueda.toLowerCase())) {
+                filterSearchPayload = { status: terminoBusqueda.toLowerCase() };
+            } else {
+                // Si no es un estado, asumimos que es búsqueda general (aunque la API pide estructura específica)
+                // Por ahora lo dejamos vacío o implementamos lógica de fecha si fuera necesario
+            }
+        }
+
+        const filterBody = { filterSearch: filterSearchPayload };
 
         try {
             const response = await fetch(apiObtener, {
@@ -193,30 +214,12 @@ function Nominas() {
             });
 
             const data = await response.json();
-            console.log("Contenido: ", data);
+            console.log("Contenido Nominas: ", data);
 
-            if (response.ok && data.success) {
-                const registrosParseados: Nomina[] = data.details.map((item: any) => {
-                    const apiPeriodStart = item.Payment_period?.from || item.period_start;
-                    const apiPeriodEnd = item.Payment_period?.to || item.period_end;
-
-                    return {
-                        id: item.id || 0,
-                        status: item.status || 'draft',
-                        employee_id: item.employee?.id || 0,
-                        period_start: apiPeriodStart ? new Date(apiPeriodStart) : new Date(),
-                        period_end: apiPeriodEnd ? new Date(apiPeriodEnd) : new Date(),
-                        daily_salary: Number(item.details?.salary_daily || item.daily_salary || 0),
-                        total_days_paid: Number(item.details?.total_days_paid || item.total_days_paid || 0),
-                        ivss: Number(item.description?.deductions?.ivss || item.ivss || 0),
-                        pie: Number(item.description?.deductions?.pie || item.pie || 0),
-                        faov: Number(item.description?.deductions?.faov || item.faov || 0),
-                    }
-                });
-
+            if (response.ok && data.success && Array.isArray(data.details)) {
                 setStateNominas((prev) => ({
                     ...prev,
-                    registros: registrosParseados,
+                    registros: data.details,
                 }));
             } else {
                 setStateNominas((prevState) => ({
@@ -224,7 +227,6 @@ function Nominas() {
                     error: true,
                     errorMsg: data.message || "Error al cargar registros",
                 }));
-                console.error("Fallo: ", data.message);
             }
         } catch (error) {
             setStateNominas((prevState) => ({
@@ -233,6 +235,8 @@ function Nominas() {
                 errorMsg: "Error de conexion",
             }));
             console.error("Error: ", error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -246,15 +250,6 @@ function Nominas() {
         e.preventDefault();
 
         setState((prevState) => ({ ...prevState, error: false, errorMsg: "" }));
-
-//        if (!accessToken) {
-//            setState((prevState) => ({
-//                ...prevState,
-//                error: true,
-//                errorMsg: "Token no encontrado. Por favor inicie sesión nuevamente.",
-//            }));
-//            return;
-//        }
 
         if (
             !state.form.employee_id ||
@@ -285,8 +280,6 @@ function Nominas() {
                 pie: String(state.form.pie),
                 faov: String(state.form.faov),
             };
-
-            console.log("Datos a enviar:", dataToSend);
 
             const response = await fetch(apiRegistrar, {
                 method: "POST",
@@ -329,20 +322,12 @@ function Nominas() {
     //Editar Nomina
     const manejadorSubmitEditar = async (e: React.FormEvent) => {
         e.preventDefault();
+
         setNominaEditar((prevState) => ({
             ...prevState,
             error: false,
             errorMsg: "",
         }));
-
-        if (nominaEditar.status !== "draft") {
-            setNominaEditar((prevState) => ({
-                ...prevState,
-                error: true,
-                errorMsg: "solo se puede editar una nomina en estado draft."
-            }))
-            return;
-        }
 
         if (Object.keys(camposModificados).length === 0) {
             setNominaEditar((prevState) => ({
@@ -353,110 +338,85 @@ function Nominas() {
             return;
         }
 
-        if (
-            !nominaEditar.employee_id ||
-            !nominaEditar.period_start ||
-            !nominaEditar.period_end ||
-            !nominaEditar.daily_salary ||
-            !nominaEditar.total_days_paid ||
-            nominaEditar.ivss === undefined ||
-            nominaEditar.pie === undefined ||
-            nominaEditar.faov === undefined
-        ) {
+        if (nominaEditar.status !== "draft") {
             setNominaEditar((prevState) => ({
                 ...prevState,
                 error: true,
-                errorMsg: "Por favor, complete los campos obligatorios."
-            }));
+                errorMsg: "Solo se puede editar una nomina en estado draft."
+            }))
             return;
         }
 
 
         if (nominaEditar.id !== null) {
-            await editarDatosRegistro(nominaEditar.id, camposModificados);
-        }
-    };
+            if (!accessToken) {
+                setStateNominas((prevState) => ({
+                    ...prevState,
+                    error: true,
+                    errorMsg: "Token no encontrado",
+                }));
+                return;
+            }
 
+            // Enviar el objeto completo aunque no haya cambios, según requerimiento
+            const dataToSend = {
+                employee_id: String(nominaEditar.employee_id),
+                period_start: formatDate(nominaEditar.period_start),
+                period_end: formatDate(nominaEditar.period_end),
+                daily_salary: String(nominaEditar.daily_salary),
+                total_days_paid: String(nominaEditar.total_days_paid),
+                ivss: String(nominaEditar.ivss),
+                pie: String(nominaEditar.pie),
+                faov: String(nominaEditar.faov),
+            };
 
-    const editarDatosRegistro = async (
-        idEditar: number,
-        datosEditar: Partial<{
-            period_start: Date;
-            period_end: Date;
-            daily_salary: number;
-            total_days_paid: number;
-            ivss: number;
-            pie: number;
-            faov: number;
-        }>
-    ) => {
-        if (!accessToken) {
-            setStateNominas((prevState) => ({
-                ...prevState,
-                error: true,
-                errorMsg: "Token no encontrado",
-            }));
-            return;
-        }
+            try {
+                const apiEditarRegistro = `${apiEditar}${nominaEditar.id}`;
+                const response = await fetch(apiEditarRegistro, {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                    body: JSON.stringify(dataToSend),
+                });
 
-        const dataToSend = {
-            ...datosEditar,
-            ...(datosEditar.period_start && { period_start: formatDate(datosEditar.period_start) }),
-            ...(datosEditar.period_end && { period_end: formatDate(datosEditar.period_end) }),
-        };
+                const data = await response.json();
 
-        try {
-            const apiEditarRegistro = `${apiEditar}${idEditar}`;
-            const response = await fetch(apiEditarRegistro, {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${accessToken}`,
-                },
-                body: JSON.stringify(dataToSend),
-            });
-
-            const data = await response.json();
-            console.log("RESPUESTA DE EDITADO", data);
-
-            if (response.ok && data.success) {
-                console.log("Registro Editado")
-                handleCloseModalEdit();
-                setSuccessMessage("Nomina editado con éxito.");
-                listarRegistros();
-                setCamposModificados({});
-                setTimeout(() => {
-                    setSuccessMessage(null)
-                }, 3000);
-            } else {
-                console.error("Error en la edicion: ", data.message)
+                if (response.ok && data.success) {
+                    console.log("Registro Editado")
+                    handleCloseModalEdit();
+                    setSuccessMessage("Nomina editada con éxito.");
+                    listarRegistros();
+                    setCamposModificados({});
+                    setTimeout(() => {
+                        setSuccessMessage(null)
+                    }, 3000);
+                } else {
+                    console.error("Error en la edicion: ", data.message)
+                    setNominaEditar((prev) => ({
+                        ...prev,
+                        error: true,
+                        errorMsg: data.message || "Error al editar la nómina.",
+                    }));
+                }
+            } catch (error) {
+                console.error("Error de conexión: ", error)
                 setNominaEditar((prev) => ({
                     ...prev,
                     error: true,
-                    errorMsg: data.message || "Error al editar la nómina.",
+                    errorMsg: "Error al conectar al servidor.",
                 }));
             }
-        } catch (error) {
-            console.error("Error de conexión: ", error)
-            setNominaEditar((prev) => ({
-                ...prev,
-                error: true,
-                errorMsg: "Error al conectar al servidor.",
-            }));
         }
     };
 
     const editarStatusRegistro = async (id: number, nuevoStatus: string) => {
         if (!accessToken || !["draft", "cancelled", "paid"].includes(nuevoStatus)) {
-            setNominaEditar((prev) => ({
-                ...prev,
-                error: true,
-                errorMsg: "Status inválido o token no encontrado.",
-            }));
             return;
         }
         try {
-            const apiEditarStatus = `${apiEditar}${id}/${nuevoStatus}`;
+            const apiEditarStatus = `${apiModificarStatus}${id}/${nuevoStatus}`;
             const response = await fetch(apiEditarStatus, {
                 method: "PATCH",
                 headers: {
@@ -464,67 +424,66 @@ function Nominas() {
                 },
             });
             const data = await response.json();
-            console.log("Respuesta de cambio de status:", data);
+
             if (response.ok && data.success) {
                 console.log("Status actualizado");
-                handleCloseModalEdit();
+                handleCloseModalDetalles(); // Cerramos el modal de detalles
                 setSuccessMessage(`Status cambiado a '${nuevoStatus}' con éxito.`);
                 listarRegistros();
                 setTimeout(() => setSuccessMessage(null), 3000);
             } else {
                 console.error("Error al cambiar status:", data.message);
-                setNominaEditar((prev) => ({
-                    ...prev,
-                    error: true,
-                    errorMsg: data.message || "Error al cambiar el status.",
-                }));
             }
         } catch (error) {
             console.error("Error de conexión:", error);
-            setNominaEditar((prev) => ({
-                ...prev,
-                error: true,
-                errorMsg: "Error al conectar al servidor.",
-            }));
         }
     };
 
+    // Mappers y Datos para Tabla
+    const datosParaTabla = useMemo(() => {
+        return stateNominas.registros.map((item) => ({
+            id: item.id,
+            id_empleado: item.employee?.id,
+            empleado: `${item.employee?.name || ''} ${item.employee?.lastname || ''}`.trim(),
+            periodo: `${formatDate(item.Payment_period?.from)} - ${formatDate(item.Payment_period?.to)}`,
+            monto: `Bs ${item.description?.net_salary}`,
+            status: item.status,
+            // Guardamos el objeto original para usarlo al editar/ver
+            original: item
+        }));
+    }, [stateNominas.registros]);
 
     const columnas = [
-        { key: "status", header: "Status" },
-        { key: "employee_id", header: "Employee ID" },
-        { key: "period_start", header: "Period Start" },
-        { key: "period_end", header: "Period End" },
-        { key: "daily_salary", header: "Daily Salary" },
-        { key: "total_days_paid", header: "Total Days Paid" },
-        { key: "ivss", header: "IVSS" },
-        { key: "pie", header: "PIE" },
-        { key: "faov", header: "FAOV" },
+        { key: "id", header: "Nro Empleado" },
+        { key: "empleado", header: "Empleado" },
+        { key: "periodo", header: "Periodo" },
+        { key: "monto", header: "Monto Neto" },
+        { key: "status", header: "Estado" },
         { key: "actions", header: "Acciones" },
     ];
 
-    const userRegistro = (
-        //Logica para el envío del formulario
-        <button
-            form="FormularioNomina"
-            className="btn bg-blue-500 hover:bg-blue-600 text-white"
-        >
-            Registrar
-        </button>
-    );
+    // Contadores
+    const contadorNominas = useMemo(() => {
+        const contador = {
+            paid: 0,
+            draft: 0,
+            cancelled: 0,
+            total: stateNominas.registros.length,
+        };
 
-    const userEdit = (
-        //Logica para el envío del formulario
-        <button form="FormularioEditarNomina" className="btn bg-blue-500 hover:bg-blue-600 text-white">
-            Editar
-        </button>
-    );
+        return stateNominas.registros.reduce((acc, registro) => {
+            const estado = registro.status as keyof typeof contador;
+            if (estado in acc) {
+                acc[estado]++;
+            }
+            return acc;
+        }, contador);
+    }, [stateNominas.registros]);
 
-    const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const [isModalOpenEdit, setIsModalOpenEdit] = useState(false);
-
+    // Modals Handlers
     const handleOpenModal = () => {
+        setState(initialState);
         setIsModalOpen(true);
     };
 
@@ -532,34 +491,157 @@ function Nominas() {
         setIsModalOpen(false);
     };
 
-    const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const nuevoStatus = e.target.value;
-        if (nominaEditar.id !== null) {
-            editarStatusRegistro(nominaEditar.id, nuevoStatus);
-        }
-    };
-
-    const handleOpenModalEdit = (nomina: Item) => {
+    const handleOpenModalEdit = (itemTabla: any) => {
+        const nomina = itemTabla.original;
         setNominaEditar({
             id: nomina.id,
             status: nomina.status || "draft",
-            employee_id: nomina.employee_id,
-            period_start: nomina.period_start instanceof Date ? nomina.period_start : new Date(nomina.period_start),
-            period_end: nomina.period_end instanceof Date ? nomina.period_end : new Date(nomina.period_end),
-            daily_salary: nomina.daily_salary,
-            total_days_paid: nomina.total_days_paid,
-            ivss: nomina.ivss || 0,
-            pie: nomina.pie || 0,
-            faov: nomina.faov || 0,
+            employee_id: Number(nomina.employee?.id),
+            period_start: nomina.Payment_period?.from ? new Date(nomina.Payment_period.from) : new Date(),
+            period_end: nomina.Payment_period?.to ? new Date(nomina.Payment_period.to) : new Date(),
+            daily_salary: Number(nomina.details?.salary_daily || 0),
+            total_days_paid: Number(nomina.details?.total_days_paid || 0),
+            ivss: Number(nomina.description?.deductions?.ivss || 0),
+            pie: Number(nomina.description?.deductions?.pie || 0),
+            faov: Number(nomina.description?.deductions?.faov || 0),
             error: false,
             errorMsg: "",
         });
         setIsModalOpenEdit(true);
     };
 
-        const handleCloseModalEdit = () => {
+    const handleCloseModalEdit = () => {
         setIsModalOpenEdit(false);
     };
+
+    const handleView = (itemTabla: any) => {
+        setRegistroSeleccionado(itemTabla.original);
+        setIsModalOpenDetalles(true);
+    };
+
+    const handleCloseModalDetalles = () => {
+        setRegistroSeleccionado(null);
+        setIsModalOpenDetalles(false);
+    };
+
+
+    // Renderers
+    const userRegistro = (
+        <button form="FormularioNomina" className="btn bg-blue-500 hover:bg-blue-600 text-white">
+            Registrar
+        </button>
+    );
+
+    const userEdit = (
+        <button form="FormularioEditarNomina" className="btn bg-blue-500 hover:bg-blue-600 text-white">
+            Guardar Cambios
+        </button>
+    );
+
+    const renderDetallesBody = useMemo(() => {
+        if (!registroSeleccionado) return null;
+
+        return (
+            <div className="space-y-6 p-2 text-sm text-gray-700">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                        <h3 className="font-bold text-gray-900 mb-2 border-b pb-1">
+                            Información del Empleado
+                        </h3>
+                        <p><span className="font-semibold">Nombre:</span> {registroSeleccionado.employee?.name} {registroSeleccionado.employee?.lastname}</p>
+                        <p><span className="font-semibold">C.I:</span> {registroSeleccionado.employee?.ci}</p>
+                        <p><span className="font-semibold">Rol:</span> {registroSeleccionado.employee?.rol}</p>
+                    </div>
+
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                        <h3 className="font-bold text-gray-900 mb-2 border-b pb-1">
+                            Periodo de Pago
+                        </h3>
+                        <p><span className="font-semibold">Desde:</span> {formatDate(registroSeleccionado.Payment_period?.from)}</p>
+                        <p><span className="font-semibold">Hasta:</span> {formatDate(registroSeleccionado.Payment_period?.to)}</p>
+                    </div>
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-lg p-3">
+                    <h3 className="font-bold text-gray-900 mb-2">Detalles del Cálculo</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                        <p>Salario Diario: <span className="font-mono">Bs {registroSeleccionado.details?.salary_daily}</span></p>
+                        <p>Días Pagados: <span className="font-mono">{registroSeleccionado.details?.total_days_paid}</span></p>
+                        <p>Salario Mensual: <span className="font-mono">Bs {registroSeleccionado.description?.monthly_salary}</span></p>
+                        <p>Salario Quincenal: <span className="font-mono">Bs {registroSeleccionado.description?.salary_biweekly}</span></p>
+                    </div>
+                </div>
+
+                <div className="border-t pt-4">
+                    <h3 className="font-bold text-lg text-gray-900 mb-3">
+                        Deducciones y Neto
+                    </h3>
+                    <div className="grid grid-cols-3 gap-2 text-sm text-red-600 mb-3">
+                        <p>IVSS: Bs {registroSeleccionado.description?.deductions?.ivss}</p>
+                        <p>PIE: Bs {registroSeleccionado.description?.deductions?.pie}</p>
+                        <p>FAOV: Bs {registroSeleccionado.description?.deductions?.faov}</p>
+                    </div>
+
+                    <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-300">
+                        <span className="font-bold text-lg">Total Deducciones:</span>
+                        <span className="font-bold text-lg text-red-600 font-mono">
+                            Bs {registroSeleccionado.description?.totalDeductions}
+                        </span>
+                    </div>
+
+                    <div className="flex justify-between items-center mt-2">
+                        <span className="font-bold text-xl">Sueldo Neto:</span>
+                        <span className="font-bold text-2xl text-blue-600 font-mono">
+                            Bs {registroSeleccionado.description?.net_salary}
+                        </span>
+                    </div>
+
+                    <div className="mt-4 flex justify-end">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase
+                    ${registroSeleccionado.status === "paid" ? "bg-green-100 text-green-700" :
+                                registroSeleccionado.status === "draft" ? "bg-yellow-100 text-yellow-700" :
+                                    "bg-red-100 text-red-700"}`}>
+                            Estado: {registroSeleccionado.status}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        );
+    }, [registroSeleccionado]);
+
+    const renderDetallesAcciones = useMemo(() => {
+        if (!registroSeleccionado || registroSeleccionado.status !== "draft") {
+            return null;
+        }
+
+        const id = registroSeleccionado.id;
+
+        return (
+            <>
+                <button
+                    onClick={() => {
+                        if (window.confirm("¿Estás seguro de que deseas CANCELAR esta nómina?")) {
+                            editarStatusRegistro(id, "cancelled");
+                        }
+                    }}
+                    className="btn bg-red-100 text-red-700 border-red-200 hover:bg-red-200 hover:border-red-300"
+                >
+                    Cancelar Nómina
+                </button>
+
+                <button
+                    onClick={() => {
+                        if (window.confirm("¿Confirmar pago de nómina?")) {
+                            editarStatusRegistro(id, "paid");
+                        }
+                    }}
+                    className="btn bg-green-600 text-white hover:bg-green-700 border-green-600"
+                >
+                    Procesar Pago
+                </button>
+            </>
+        );
+    }, [registroSeleccionado]);
 
     return (
         <>
@@ -573,10 +655,40 @@ function Nominas() {
                     </div>
                 )}
                 <section className="flex flex-col flex-grow w-full items-center pl-4 pr-4">
-                    <ToolBar titulo="Nominas" onRegister={handleOpenModal} onSearch={listarRegistros} />
-                    <Table data={stateNominas.registros} columnas={columnas} onEdit={handleOpenModalEdit} />
+                    <ToolBar titulo="Nóminas" onRegister={handleOpenModal} onSearch={listarRegistros} />
+
+                    {isLoading ? (
+                        <div className="w-full flex items-center justify-center py-6">
+                            <span className="loading loading-spinner loading-xl"></span>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="flex flex-row mb-4 w-full items-start gap-5">
+                                <div className="p-4 bg-white border border-gray-400 rounded-lg shadow-sm">
+                                    <span>Total: {contadorNominas.total}</span>
+                                </div>
+                                <div className="p-4 bg-white border border-gray-400 rounded-lg shadow-sm">
+                                    <span>Pagadas: {contadorNominas.paid}</span>
+                                </div>
+                                <div className="p-4 bg-white border border-gray-400 rounded-lg shadow-sm">
+                                    <span>Borrador: {contadorNominas.draft}</span>
+                                </div>
+                                <div className="p-4 bg-white border border-gray-400 rounded-lg shadow-sm">
+                                    <span>Canceladas: {contadorNominas.cancelled}</span>
+                                </div>
+                            </div>
+                            <Table
+                                data={datosParaTabla}
+                                columnas={columnas}
+                                onEdit={handleOpenModalEdit}
+                                onView={handleView}
+                            />
+                        </>
+                    )}
                 </section>
             </main>
+
+            {/* Modal Registro */}
             <Modal isOpen={isModalOpen} onClose={handleCloseModal} titulo="Registrar Nueva Nómina" acciones={userRegistro}>
                 <form id="FormularioNomina" onSubmit={manejadorSubmit} className="grid grid-cols-2 gap-3">
                     <div>
@@ -680,22 +792,9 @@ function Nominas() {
                 </div>
             </Modal>
 
-            {/* Modal de Edición */}
+            {/* Modal Edición */}
             <Modal isOpen={isModalOpenEdit} onClose={handleCloseModalEdit} titulo="Editar Nómina" acciones={userEdit}>
                 <form id="FormularioEditarNomina" onSubmit={manejadorSubmitEditar} className="grid grid-cols-2 gap-3">
-                    <div>
-                        <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">Status:</label>
-                        <select
-                            name="status"
-                            value={nominaEditar.status}
-                            onChange={handleStatusChange}
-                            className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-                        >
-                            <option value="draft">Draft</option>
-                            <option value="cancelled">Cancelled</option>
-                            <option value="paid">Paid</option>
-                        </select>
-                    </div>
                     <div>
                         <label htmlFor="employee_id" className="block text-sm font-medium text-gray-700 mb-1">Employee:</label>
                         <select
@@ -795,6 +894,16 @@ function Nominas() {
                         {nominaEditar.errorMsg && <span className="text-red-600 text-sm m-0">{nominaEditar.errorMsg}</span>}
                     </div>
                 </form>
+            </Modal>
+
+            {/* Modal Detalles */}
+            <Modal
+                isOpen={isModalOpenDetalles}
+                onClose={handleCloseModalDetalles}
+                titulo="Detalles de Nómina"
+                acciones={renderDetallesAcciones}
+            >
+                {renderDetallesBody}
             </Modal>
         </>
     );

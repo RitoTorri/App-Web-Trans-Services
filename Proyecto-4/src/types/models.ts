@@ -31,7 +31,7 @@ export interface Cliente extends Item {
 export interface Proveedor extends Item {
   nombre: string;
   rif: string;
-  contacts: {contact_info: string}[];
+  contacts: { contact_info: string }[];
 }
 
 export interface Vehiculo extends Item {
@@ -39,7 +39,8 @@ export interface Vehiculo extends Item {
   model: string,
   license_plate: string,
   total_seats: number,
-  vehicle_type_id: number
+  vehicle_type_id: number;
+  is_active?: boolean;
 }
 
 export interface Nomina extends Item {
