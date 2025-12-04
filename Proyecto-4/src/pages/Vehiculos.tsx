@@ -1,20 +1,19 @@
 import ToolBar from "../components/Table/ToolBar";
-import type { Vehiculo, Empleado, TipoVehiculo } from "../types/models";//cambiamos el item x vehiculo y traemos la clase empleado
+import type { Vehiculo, Empleado, TipoVehiculo, Item } from "../types/models";
 import Modal from "../components/Modal/Modal";
 import { useState, useEffect } from "react";
 import Table from "../components/Table/Table";
-import { apiRegistrar, apiObtener, apiEditar } from "../services/apiVehiculos";
-import { apiObtener as apiObtenerEmpleados } from "../services/apiEmpleados";//le cambiamos el nombre en este caso para no generar errores de sintaxis
-
+import { apiRegistrar, apiEditar, apiVehiculos, apiEliminar, apiReactivar } from "../services/apiVehiculos";
+import { apiObtener as apiObtenerEmpleados } from "../services/apiEmpleados";
 import { apiObtenerTipo } from "../services/apiTipo_vehiculos";
 
-//interfaces actualizadas para coincidir con la api
+
 interface RegisterFormState {
-  driver_id: number,
-  model: string,
-  license_plate: string,
-  total_seats: number,
-  vehicle_type_id: number
+  driver_id: number;
+  model: string;
+  license_plate: string;
+  total_seats: number;
+  vehicle_type_id: number;
 }
 
 interface RegisterState {
@@ -29,7 +28,7 @@ const initialState: RegisterState = {
     model: "",
     license_plate: "",
     total_seats: 0,
-    vehicle_type_id: 0
+    vehicle_type_id: 0,
   },
   error: false,
   errorMsg: "",
@@ -66,31 +65,65 @@ const initialStateVehiculoEditar: VehiculoEditarState = {
   total_seats: 0,
   vehicle_type_id: 0,
   error: false,
-  errorMsg: ""
+  errorMsg: "",
 };
 
 function Vehiculos() {
   const accessToken = localStorage.getItem("token");
   const [state, setState] = useState<RegisterState>(initialState);
   const [stateVehiculos, setStateVehiculos] = useState<VehiculosState>(initialStateVehiculos);
+  const [vehiculosInactivos, setVehiculosInactivos] = useState<Vehiculo[]>([]);
 
   //lista de empleados(con rol choferes)
-  const [listaChoferes, setListaChoferes] = useState<Empleado[]>([]);//guardamos las listas de los empleados ya existentes
+  const [listaChoferes, setListaChoferes] = useState<Empleado[]>([]);
 
   // tipos de vehículo
-  const [listaTiposVehiculo, setListaTiposVehiculo] = useState<TipoVehiculo[]>([]); // guardamos las listas de los tipos que son 3 ya existentes
+  const [listaTiposVehiculo, setListaTiposVehiculo] = useState<TipoVehiculo[]>([]);
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [vehiculoEditar, setVehiculoEditar] = useState<VehiculoEditarState>(initialStateVehiculoEditar);
   const [camposModificados, setCamposModificados] = useState<Partial<VehiculoEditarState>>({});
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpenEdit, setIsModalOpenEdit] = useState(false);
+  const [isModalOpenDelete, setIsModalOpenDelete] = useState(false);
+  const [isModalOpenRestore, setIsModalOpenRestore] = useState(false);
+
+  const [vistaActual, setVistaActual] = useState<"activos" | "inactivos">("activos");
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehiculo | null>(null);
+
+  const handleOpenModal = () => {
+    setState(initialState);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleOpenModalEdit = (vehiculo: Vehiculo) => {
+    setVehiculoEditar({
+      id: vehiculo.id,
+      driver_id: vehiculo.driver_id,
+      model: vehiculo.model,
+      license_plate: vehiculo.license_plate,
+      total_seats: vehiculo.total_seats,
+      vehicle_type_id: vehiculo.vehicle_type_id,
+      error: false,
+      errorMsg: "",
+    });
+    setIsModalOpenEdit(true);
+  };
+
+  const handleCloseModalEdit = () => {
+    setIsModalOpenEdit(false);
+  };
 
   //funcion para los empleados activos con rol de chofer  y activos
   const cargarChoferes = async () => {
     if (!accessToken) return;
 
-    // Ajusta esta URL a tu endpoint real de búsqueda de empleados activos
     const url = `${apiObtenerEmpleados}true/all`;
 
     try {
@@ -105,8 +138,6 @@ function Vehiculos() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // 1. Accedemos a data.details (donde viene la lista)
-        // 2. Filtramos por rol "chofer"
         const soloChoferes = data.details.filter(
           (emp: Empleado) => emp.rol.toLowerCase() === "chofer"
         );
@@ -120,14 +151,11 @@ function Vehiculos() {
     }
   };
 
-
   //funcion para obtener los tipos de vehiculos
   const cargarTiposVehiculo = async () => {
     if (!accessToken) return;
 
     try {
-      // Asumiendo que tu API soporta '/all' al final o filtra directamente
-      // Ajusta la URL según cómo funcione tu backend para traer "todos"
       const response = await fetch(apiObtenerTipo, {
         method: "GET",
         headers: {
@@ -139,7 +167,6 @@ function Vehiculos() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // Asumiendo que data.details es el array de tipos
         setListaTiposVehiculo(data.details);
       } else {
         console.error("Error al cargar tipos de vehículo:", data.message);
@@ -148,7 +175,6 @@ function Vehiculos() {
       console.error("Error de conexión:", error);
     }
   };
-
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -171,14 +197,14 @@ function Vehiculos() {
       ...prevState,
       [name]: value,
       error: false,
-      errorMsg: ""
-    }))
+      errorMsg: "",
+    }));
 
     setCamposModificados((prevFields) => ({
       ...prevFields,
-      [name]: value
+      [name]: value,
     }));
-  }
+  };
 
   //carga registros de vehiculos
   const listarRegistros = async (terminoBusqueda = "") => {
@@ -193,13 +219,7 @@ function Vehiculos() {
       return;
     }
 
-    let filterValue = "all";
-
-    if (terminoBusqueda && terminoBusqueda.trim() !== "") {
-      filterValue = encodeURIComponent(terminoBusqueda.trim());
-    }
-
-    const urlBusqueda = `${apiObtener}${filterValue}`;
+    const urlBusqueda = apiVehiculos;
 
     try {
       const response = await fetch(urlBusqueda, {
@@ -212,14 +232,24 @@ function Vehiculos() {
 
       const data = await response.json();
 
-
       if (response.ok && data.success) {
-        const registrosApi = data.details;
+        let registrosApi = data.details;
+
+        if (terminoBusqueda && terminoBusqueda.trim() !== "") {
+          const busqueda = terminoBusqueda.toLowerCase();
+          registrosApi = registrosApi.filter((vehiculo: Vehiculo) => {
+            return (
+              (vehiculo.model && vehiculo.model.toLowerCase().includes(busqueda)) ||
+              (vehiculo.license_plate && vehiculo.license_plate.toLowerCase().includes(busqueda))
+            );
+          });
+        }
 
         setStateVehiculos((prev) => ({
           ...prev,
-          registros: registrosApi,
+          registros: registrosApi.filter((v: Vehiculo) => v.is_active !== false),
         }));
+        setVehiculosInactivos(registrosApi.filter((v: Vehiculo) => v.is_active === false));
       } else {
         setStateVehiculos((prevState) => ({
           ...prevState,
@@ -275,7 +305,7 @@ function Vehiculos() {
         model: model,
         license_plate: license_plate,
         total_seats: Number(total_seats),
-        vehicle_type_id: Number(vehicle_type_id)
+        vehicle_type_id: Number(vehicle_type_id),
       };
 
       const response = await fetch(apiRegistrar, {
@@ -332,8 +362,8 @@ function Vehiculos() {
       setVehiculoEditar((prevState) => ({
         ...prevState,
         error: true,
-        errorMsg: "No se han detectado cambios"
-      }))
+        errorMsg: "No se han detectado cambios",
+      }));
       return;
     }
 
@@ -347,40 +377,36 @@ function Vehiculos() {
       !vehiculoEditar.license_plate ||
       !vehiculoEditar.total_seats ||
       !vehiculoEditar.vehicle_type_id
-
     ) {
       setVehiculoEditar((prevState) => ({
         ...prevState,
         error: true,
-        errorMsg: "Por favor, complete los campos obligatorios."
+        errorMsg: "Por favor, complete los campos obligatorios.",
       }));
       return;
     }
-  }
+  };
 
-  const editarRegistro = async (
-    idEditar: number,
-    datosEditar: any
-  ) => {
+  const editarRegistro = async (idEditar: number, datosEditar: any) => {
     if (!accessToken) {
       setStateVehiculos((prevState) => ({
         ...prevState,
         error: true,
-        errorMsg: "Token no encontrado"
-      }))
+        errorMsg: "Token no encontrado",
+      }));
       return;
     }
-    //console.log(datosEditar);
 
     /// 1. Preparar datos para la API (Renombrar drive_id a driver_id)
     const payload = {
       ...(datosEditar.driver_id && { driver_id: Number(datosEditar.driver_id) }),
       ...(datosEditar.model && { model: datosEditar.model }),
       ...(datosEditar.total_seats && { total_seats: Number(datosEditar.total_seats) }),
+      ...(datosEditar.vehicle_type_id && { vehicle_type_id: Number(datosEditar.vehicle_type_id) }),
       // is_active: true // Opcional según tu lógica
     };
 
-    // 2. Necesitamos la placa actual para la URL. 
+    // 2. Necesitamos la placa actual para la URL.
     // Como 'vehiculoEditar' es un estado global, podemos acceder a la placa vieja desde ahí:
     const placaParaUrl = vehiculoEditar.license_plate;
 
@@ -388,10 +414,7 @@ function Vehiculos() {
     // Nota: Asegúrate que 'apiEditar' termine con "/" -> "http://.../updateVehicle/"
     const urlEdicion = `${apiEditar}${placaParaUrl}`;
 
-
     try {
-      //const apiEditarRegistro = `${apiEditar}${idEditar}`;
-
       const response = await fetch(urlEdicion, {
         method: "PUT",
         headers: {
@@ -406,16 +429,16 @@ function Vehiculos() {
       console.log(data);
 
       if (response.ok && data.success) {
-        console.log("Registro Editado")
+        console.log("Registro Editado");
         handleCloseModalEdit();
         setSuccessMessage("Vehiculo editado con éxito.");
         listarRegistros();
         setCamposModificados({});
         setTimeout(() => {
-          setSuccessMessage(null)
+          setSuccessMessage(null);
         }, 3000);
       } else {
-        console.error("Error en la edicion: ", data.message)
+        console.error("Error en la edicion: ", data.message);
         setVehiculoEditar((prev) => ({
           ...prev,
           error: true,
@@ -423,86 +446,137 @@ function Vehiculos() {
         }));
       }
     } catch (error) {
-      console.error("Error de conexión: ", error)
+      console.error("Error de conexión: ", error);
       setVehiculoEditar((prev) => ({
         ...prev,
         error: true,
         errorMsg: "Error al conectar al servidor.",
-      }))
+      }));
     }
+  };
 
-  }
+  const handleOpenModalDelete = (vehiculo: Vehiculo) => {
+    setSelectedVehicle(vehiculo);
+    setIsModalOpenDelete(true);
+  };
+
+  const handleCloseModalDelete = () => {
+    setIsModalOpenDelete(false);
+    setSelectedVehicle(null);
+  };
+
+  const handleOpenModalRestore = (vehiculo: Vehiculo) => {
+    setSelectedVehicle(vehiculo);
+    setIsModalOpenRestore(true);
+  };
+
+  const handleCloseModalRestore = () => {
+    setIsModalOpenRestore(false);
+    setSelectedVehicle(null);
+  };
+
+  const eliminarVehiculo = async () => {
+    if (!accessToken || !selectedVehicle) return;
+
+    try {
+      const urlEliminar = `${apiEliminar}${selectedVehicle.license_plate.trim()}`;
+
+      const response = await fetch(urlEliminar, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setSuccessMessage("Vehículo desactivado con éxito.");
+        handleCloseModalDelete();
+        listarRegistros();
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
+        console.error("Error al eliminar:", data.message);
+        // Podrías manejar un estado de error específico para el modal si lo deseas
+      }
+    } catch (error) {
+      console.error("Error de conexión:", error);
+    }
+  };
+
+  const reactivarVehiculo = async () => {
+    if (!accessToken || !selectedVehicle) return;
+
+    try {
+      const urlReactivar = `${apiReactivar}${selectedVehicle.license_plate.trim()}`;
+      const response = await fetch(urlReactivar, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setSuccessMessage("Vehículo reactivado con éxito.");
+        handleCloseModalRestore();
+        listarRegistros();
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
+        console.error("Error al reactivar:", data.message);
+      }
+    } catch (error) {
+      console.error("Error de conexión:", error);
+    }
+  };
 
   const columnas = [
-    { key: "driver_id", header: "ID CONDUCTOR" },
+    {
+      key: "driver_id",
+      header: "NOMBRE CONDUCTOR",
+      render: (item: Item) => {
+        const vehiculo = item as Vehiculo;
+        const chofer = listaChoferes.find((c) => c.id === vehiculo.driver_id);
+        return chofer ? `${chofer.name} ${chofer.lastname}` : "Sin Asignar";
+      },
+    },
     { key: "model", header: "MODELO" },
     { key: "license_plate", header: "PLACA" },
     { key: "total_seats", header: "TOTAL ASIENTOS" },
-    { key: "vehicle_type_id", header: "TIPO ID VEHICULO" },
+    {
+      key: "vehicle_type_id",
+      header: "TIPO VEHICULO",
+      render: (item: Item) => {
+        const vehiculo = item as Vehiculo;
+        const tipo = listaTiposVehiculo.find((t) => t.id === vehiculo.vehicle_type_id);
+        return tipo ? tipo.type_name : "Desconocido";
+      },
+    },
     { key: "actions", header: "Acciones" },
   ];
 
+  const onDeleteHandler = (id: number, nombre?: string) => {
+    const vehiculo = stateVehiculos.registros.find((v) => v.id === id);
+    if (vehiculo) handleOpenModalDelete(vehiculo);
+  };
+
+  const onRestoreHandler = (id: number, nombre?: string) => {
+    const vehiculo = vehiculosInactivos.find((v) => v.id === id);
+    if (vehiculo) handleOpenModalRestore(vehiculo);
+  };
+
   const userRegistro = (
-    //Logica para el envío del formulario
-
-    <button
-      form="FormularioVehiculo"
-      className="btn bg-blue-500 hover:bg-blue-600 text-white">
-      Registrar
-    </button>
-  );
-
-  const userEdit = (
-    //Logica para el envío del formulario
     <button form="FormularioVehiculo" className="btn bg-blue-500 hover:bg-blue-600 text-white">
       Registrar
     </button>
   );
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const [isModalOpenEdit, setIsModalOpenEdit] = useState(false);
-
-  //const handleSearch = () => {
-  //  console.log("Buscar");
-  //};
-
-  const handleOpenModal = () => {
-    setState(initialState)
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-  };
-
-  const handleOpenModalEdit = (vehiculo: Vehiculo) => {
-    setVehiculoEditar({
-      id: vehiculo.id,
-      driver_id: vehiculo.drive_id,
-      model: vehiculo.model,
-      license_plate: vehiculo.license_plate,
-      total_seats: vehiculo.total_seats,
-      vehicle_type_id: vehiculo.vehicle_type_id,
-      error: false,
-      errorMsg: "",
-    })
-    setIsModalOpenEdit(true);
-  };
-
-  const handleCloseModalEdit = () => {
-    setIsModalOpenEdit(false);
-  }
-
-  //onst handleDelete = (item: Item) => {
-  //  console.log("Eliminar");
-  // item;
-  //};
-
-  //const handleEdit = (item: Item) => {
-  //console.log("Editar");
-  //item;
-  //};
+  const userEdit = (
+    <button form="FormularioEditarVehiculo" className="btn bg-blue-500 hover:bg-blue-600 text-white">
+      Registrar
+    </button>
+  );
 
   return (
     <>
@@ -522,20 +596,45 @@ function Vehiculos() {
           </div>
         )}
         <section className="flex flex-col flex-grow items-center pl-4 pr-4">
-          <ToolBar
-            titulo="Vehículos"
-            onRegister={handleOpenModal}
-            onSearch={listarRegistros}
-          />
+          <ToolBar titulo="Vehículos" onRegister={handleOpenModal} onSearch={listarRegistros} />
+
+          <div className="w-full  flex items-center justify-around border border-gray-400 border-b-white rounded-lg rounded-b-none  shadow-md bg-white p-2">
+            <button
+              onClick={() => setVistaActual("activos")}
+              className={` ${vistaActual === "activos"
+                ? "py-1 px-2 border-b-3  border-green-500 transition duration-300 cursor-pointer"
+                : "cursor-pointer"
+                } `}
+            >
+              Vehículos Activos ({stateVehiculos.registros.length})
+            </button>
+            <button
+              onClick={() => setVistaActual("inactivos")}
+              className={` ${vistaActual === "inactivos"
+                ? "py-1 px-2 border-b-3  border-red-400 transition duration-300 cursor-pointer "
+                : "hover:bg-gray-100 transition-all cursor-pointer"
+                } `}
+            >
+              Vehículos Inactivos ({vehiculosInactivos.length})
+            </button>
+          </div>
+
           {isLoading ? (
             <div className="w-full flex items-center justify-center py-6">
               <span className="loading loading-spinner loading-xl"></span>
             </div>
           ) : (
             <Table
-              data={stateVehiculos.registros}
+              data={vistaActual === "activos" ? stateVehiculos.registros : vehiculosInactivos}
               columnas={columnas}
-              onEdit={(item) => handleOpenModalEdit(item as Vehiculo)}
+              onEdit={
+                vistaActual === "activos"
+                  ? (item) => handleOpenModalEdit(item as Vehiculo)
+                  : undefined
+              }
+              onDelete={vistaActual === "activos" ? onDeleteHandler : undefined}
+              onRestore={vistaActual === "inactivos" ? onRestoreHandler : undefined}
+              emptyMessage={`No hay vehículos ${vistaActual}.`}
             />
           )}
         </section>
@@ -546,22 +645,14 @@ function Vehiculos() {
         titulo="Registrar Nuevo Vehículo"
         acciones={userRegistro}
       >
-        <form
-          id="FormularioVehiculo"
-          onSubmit={manejadorSubmit}
-          className="grid grid-cols-2 gap-3"
-        >
+        <form id="FormularioVehiculo" onSubmit={manejadorSubmit} className="grid grid-cols-2 gap-3">
           <div>
-            <label
-              htmlFor="drive_id"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
+            <label htmlFor="driver_id" className="block text-sm font-medium text-gray-700 mb-1">
               Chofer Asignado:
             </label>
 
             <select
               name="driver_id"
-              // Usamos driver_id que es como se llama en tu modelo Vehiculo
               value={state.form.driver_id}
               onChange={handleInputChange}
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 bg-white focus:outline-none focus:ring-2 focus:ring-gray-300"
@@ -570,18 +661,13 @@ function Vehiculos() {
 
               {listaChoferes.map((chofer) => (
                 <option key={chofer.id} value={chofer.id}>
-                  {/* Usamos nombre y apellido según tu modelo Empleado */}
                   {chofer.name} {chofer.lastname} (C.I: {chofer.ci})
                 </option>
               ))}
-
             </select>
           </div>
           <div>
-            <label
-              htmlFor="license_plate"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
+            <label htmlFor="license_plate" className="block text-sm font-medium text-gray-700 mb-1">
               Placa:
             </label>
             <input
@@ -594,10 +680,7 @@ function Vehiculos() {
             />
           </div>
           <div>
-            <label
-              htmlFor="total_seats"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
+            <label htmlFor="total_seats" className="block text-sm font-medium text-gray-700 mb-1">
               Numero De Asientos:
             </label>
             <input
@@ -610,10 +693,7 @@ function Vehiculos() {
             />
           </div>
           <div>
-            <label
-              htmlFor="vehicle_type_id"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
+            <label htmlFor="vehicle_type_id" className="block text-sm font-medium text-gray-700 mb-1">
               Tipo de Vehículo:
             </label>
             <select
@@ -632,10 +712,7 @@ function Vehiculos() {
             </select>
           </div>
           <div>
-            <label
-              htmlFor="model"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
+            <label htmlFor="model" className="block text-sm font-medium text-gray-700 mb-1">
               Modelo:
             </label>
             <input
@@ -649,9 +726,7 @@ function Vehiculos() {
           </div>
           <div className="min-h-6 text-center">
             {state.error && (
-              <span className="text-center text-red-500 text-sm m-0">
-                {state.errorMsg}
-              </span>
+              <span className="text-center text-red-500 text-sm m-0">{state.errorMsg}</span>
             )}
           </div>
         </form>
@@ -662,17 +737,17 @@ function Vehiculos() {
         titulo="Editar Vehículo"
         acciones={userEdit}
       >
-        <form id="FormularioEditarVehiculo" onSubmit={manejadorSubmitEditar} className="grid grid-cols-2 gap-3">
+        <form
+          id="FormularioEditarVehiculo"
+          onSubmit={manejadorSubmitEditar}
+          className="grid grid-cols-2 gap-3"
+        >
           <div>
-            <label
-              htmlFor="drive_id"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
+            <label htmlFor="drive_id" className="block text-sm font-medium text-gray-700 mb-1">
               Chofer Asignado (Editar):
             </label>
             <select
               name="driver_id"
-              // Usamos vehiculoEditar.driver_id
               value={vehiculoEditar.driver_id}
               onChange={handleInputChangeEdit}
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 bg-white focus:outline-none focus:ring-2 focus:ring-gray-300"
@@ -680,16 +755,13 @@ function Vehiculos() {
               <option value="">-- Seleccione un Chofer --</option>
               {listaChoferes.map((chofer) => (
                 <option key={chofer.id} value={chofer.id}>
-                  {chofer.nombre} {chofer.apellido} (C.I: {chofer.cedula})
+                  {chofer.name} {chofer.lastname} (C.I: {chofer.ci})
                 </option>
               ))}
             </select>
           </div>
           <div>
-            <label
-              htmlFor="license_plate"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
+            <label htmlFor="license_plate" className="block text-sm font-medium text-gray-700 mb-1">
               Placa:
             </label>
             <input
@@ -702,10 +774,7 @@ function Vehiculos() {
             />
           </div>
           <div>
-            <label
-              htmlFor="total_seats"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
+            <label htmlFor="total_seats" className="block text-sm font-medium text-gray-700 mb-1">
               Numero De Asientos:
             </label>
             <input
@@ -716,11 +785,9 @@ function Vehiculos() {
               placeholder="Ingrese el numero de AST"
               className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
-          </div><div>
-            <label
-              htmlFor="vehicle_type_id"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
+          </div>
+          <div>
+            <label htmlFor="vehicle_type_id" className="block text-sm font-medium text-gray-700 mb-1">
               Tipo de Vehículo:
             </label>
 
@@ -740,10 +807,7 @@ function Vehiculos() {
             </select>
           </div>
           <div>
-            <label
-              htmlFor="model"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
+            <label htmlFor="model" className="block text-sm font-medium text-gray-700 mb-1">
               Modelo:
             </label>
             <input
@@ -761,6 +825,32 @@ function Vehiculos() {
             )}
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={isModalOpenDelete}
+        onClose={handleCloseModalDelete}
+        titulo="Confirmar Eliminación"
+        acciones={
+          <button onClick={eliminarVehiculo} className="btn bg-red-500 text-white hover:bg-red-600">
+            Confirmar
+          </button>
+        }
+      >
+        <p>¿Estás seguro de que deseas desactivar el vehículo con placa <strong>{selectedVehicle?.license_plate}</strong>?</p>
+      </Modal>
+
+      <Modal
+        isOpen={isModalOpenRestore}
+        onClose={handleCloseModalRestore}
+        titulo="Confirmar Reactivación"
+        acciones={
+          <button onClick={reactivarVehiculo} className="btn bg-green-500 text-white hover:bg-green-600">
+            Confirmar
+          </button>
+        }
+      >
+        <p>¿Estás seguro de que deseas reactivar el vehículo con placa <strong>{selectedVehicle?.license_plate}</strong>?</p>
       </Modal>
     </>
   );
