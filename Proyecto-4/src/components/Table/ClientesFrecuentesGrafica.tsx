@@ -33,7 +33,7 @@ export function ClientesFrecuentesGrafica() {
       <section className="grid grid-cols-2 gap-4">
         <div className="p-4 rounded-lg shadow-sm bg-white h-80 border border-gray-400 mt-5">
           <h2 className="text-xl pl-18 font-medium text-gray-800">
-            Clientes con Mayor Frecuencia
+            Clientes con mayor frecuencia
           </h2>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
@@ -79,7 +79,7 @@ export function ClientesFrecuentesGrafica() {
         </div>
         <div className="p-4 rounded-lg shadow-sm bg-white h-80 border border-gray-400 mt-5">
           <h2 className="text-xl pl-18 font-medium text-gray-800">
-            Conductores con más vaijes realizados
+            Conductores con más viajes realizados
           </h2>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
