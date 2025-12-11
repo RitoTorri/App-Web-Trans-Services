@@ -4,8 +4,9 @@ import type { Cliente } from "../types/models";
 
 interface SelectClientesProps {
   endpointUrl: string;
-  onClienteChange: (clienteId: number | null) => void;
+  onClienteChange: (clienteId: number | null, name: string | null) => void;
 }
+
 
 const SelectClientes: React.FC<SelectClientesProps> = ({
   endpointUrl,
@@ -26,14 +27,14 @@ const SelectClientes: React.FC<SelectClientesProps> = ({
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
           },
-        });
+        })
 
         if (!response.ok) {
           throw new Error(`Error http: ${response.status}`);
         }
-
         const data = await response.json();
         const registrosApi = data.details;
+        console.log("Registros: ",registrosApi)
         setClientes(registrosApi);
       } catch (error) {
         if (error instanceof Error) {
@@ -53,7 +54,19 @@ const SelectClientes: React.FC<SelectClientesProps> = ({
 
     const selectId: number | null = value ? parseInt(value) : null;
 
-    onClienteChange(selectId);
+    let selectedName: string | null = null
+
+    if(selectId !== null){
+      const clienteEncontrado = clientes.find(
+        (cliente) => cliente.id === selectId
+      )
+
+      if(clienteEncontrado){
+        selectedName = clienteEncontrado.name
+      }
+    }
+
+    onClienteChange(selectId, selectedName);
   };
 
   if (cargando) {

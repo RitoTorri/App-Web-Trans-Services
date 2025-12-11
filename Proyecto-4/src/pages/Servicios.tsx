@@ -14,8 +14,23 @@ import {
 } from "../services/apiServicios";
 import type { ServicioApi, ItemPlana } from "../types/servicos";
 import { mapServiciosToTabla } from "../mappers/servicioMapper";
-import type { EnglishStatus} from "../mappers/servicioMapper";
+import type { EnglishStatus } from "../mappers/servicioMapper";
 import { traducirEstado } from "../mappers/servicioMapper";
+
+
+interface ServiceApi {
+  vehicle_id: number;
+  client_id: number;
+  price: number;
+  start_date: string;
+  end_date: string;
+}
+
+interface PendingService extends RegisterFormState {
+  temId: number;
+  clientName?: string;
+  vehiclePlate?: string;
+}
 
 interface RegisterFormState {
   vehicle_id: number;
@@ -23,7 +38,6 @@ interface RegisterFormState {
   price: number;
   start_date: Date;
   end_date: Date;
-  isrl: number;
 }
 
 interface RegisterState {
@@ -39,7 +53,6 @@ const initialState: RegisterState = {
     price: 0,
     start_date: new Date(),
     end_date: new Date(),
-    isrl: 0,
   },
   error: false,
   errorMsg: "",
@@ -52,7 +65,7 @@ interface ServiciosState {
 }
 
 const initialServiciosState: ServiciosState = {
-  registros: [] as  [],
+  registros: [] as [],
   error: false,
   errorMsg: "",
 };
@@ -60,7 +73,12 @@ const initialServiciosState: ServiciosState = {
 const formatDateToInput = (date: Date): string => {
   // Si la fecha existe y es un objeto Date, la formatea.
   if (date instanceof Date && !isNaN(date.getTime())) {
-    return date.toISOString().split("T")[0];
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+
+    return `${year}-${month}-${day}`
+
   }
   return "";
 };
@@ -69,6 +87,11 @@ function Servicios() {
   const accessToken = localStorage.getItem("token");
   const [state, setState] = useState<RegisterState>(initialState);
 
+  const [pendingServices, setPendingServices] = useState<PendingService[]>([]);
+
+  const [currentClientName, setCurrentClientName] = useState("");
+  const [currentVehiclePlate, setCurrentVehiclePlate] = useState("");
+
   const [selectClienteId, setSelectClienteId] = useState<number | null>(null);
   const [selectVehiculoId, setSelectVehiculoId] = useState<number | null>(null);
 
@@ -76,9 +99,12 @@ function Servicios() {
     initialServiciosState
   );
 
-  const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const [filtroEstado, setFiltroEstado] = useState<string | null>(null)
+  const [terminoBusqueda, setTerminoBusqueda] =useState<string>("")
 
   const urlClientes = `${apiObtener}all`;
   const urlVehiculos = `${apiVehiculos}`;
@@ -105,8 +131,9 @@ function Servicios() {
     }));
   };
 
-  const handleClienteChange = (id: number | null) => {
+  const handleClienteChange = (id: number | null, nombre?: string) => {
     setSelectClienteId(id);
+    if (nombre) setCurrentClientName(nombre);
     setState((prevState) => ({
       ...prevState,
       form: {
@@ -116,9 +143,10 @@ function Servicios() {
     }));
   };
 
-  const handleVehiculoChange = (id: number | null) => {
+  const handleVehiculoChange = (id: number | null, placa?: string) => {
     setSelectVehiculoId(id);
-    console.log("VehiculoSeleccionado: ", id);
+    console.log(placa)
+    if (placa) setCurrentVehiclePlate(placa);
     setState((prevState) => ({
       ...prevState,
       form: {
@@ -142,41 +170,70 @@ function Servicios() {
     }));
   };
 
-  const manejadorSubmit = async (e: React.FormEvent) => {
+  const handleAddToList = (e: React.FormEvent) => {
     e.preventDefault();
-
-    setState((prevState) => ({ ...prevState, error: false, errorMsg: "" }));
 
     if (
       !state.form.client_id ||
       !state.form.vehicle_id ||
       !state.form.start_date ||
       !state.form.end_date ||
-      !state.form.isrl ||
       !state.form.price
     ) {
-      setState((prevState) => ({
-        ...prevState,
+      setState((prev) => ({
+        ...prev,
         error: true,
-        errorMsg: "Por favor, complete todos los datos.",
+        errorMsg: "Complete los datos para agregar",
       }));
-      return;
+    }
+
+    const newService: PendingService = {
+      ...state.form,
+      temId: Date.now(),
+      clientName: currentClientName || `Cliente: ${state.form.client_id}`,
+      vehiclePlate: currentVehiclePlate || `Vehiculo: ${state.form.vehicle_id}`,
+    };
+
+    setPendingServices((prev) => [...prev, newService]);
+
+    setState((prev) => ({
+      ...prev,
+      form: {
+        ...prev.form,
+        vehicle_id: 0,
+        price: 0,
+      },
+      error: false,
+      errorMsg: "",
+    }));
+    setSelectVehiculoId(null);
+  };
+
+  const handleRemoverFromList = (temId: number) => {
+    setPendingServices((prev) => prev.filter((item) => item.temId !== temId));
+  };
+
+  const manejadorSubmit = async () => {
+    if (pendingServices.length === 0) {
+      setState((prev) => ({
+        ...prev,
+        error: true,
+        errorMsg: "No hay servicios agregados en la lista",
+      }));
     }
 
     try {
-      const { client_id, vehicle_id, start_date, end_date, isrl, price } =
-        state.form;
+      const servicesPayload = pendingServices.map((item) => ({
+        vehicle_id: item.vehicle_id,
+        client_id: item.client_id,
+        price: parseFloat(String(item.price)),
+        start_date: item.start_date.toISOString().split("T")[0],
+        end_date: item.end_date.toISOString().split("T")[0],
+      }));
 
-      const dataToSend = {
-        client_id,
-        vehicle_id,
-        start_date: start_date.toISOString().split("T")[0],
-        end_date: end_date.toISOString().split("T")[0],
-        isrl: parseFloat(String(isrl)),
-        price: parseFloat(String(price)),
-      };
+      const dataToSend = { services: servicesPayload };
 
-      console.log(dataToSend);
+      console.log("Lote: ", dataToSend);
 
       const response = await fetch(apiRegistrar, {
         method: "POST",
@@ -189,17 +246,22 @@ function Servicios() {
 
       if (response.ok) {
         console.log("Registro exitoso");
+        setPendingServices([]);
         setState(initialState);
-        setSuccessMessage("Servicio Registrado con éxito.")
+        setSuccessMessage("Servicio Registrado con éxito.");
         listarRegistros();
         handleCloseModal();
-
         setTimeout(() => {
-          setSuccessMessage(null)
-        }, 3000)
+          setSuccessMessage(null);
+        }, 3000);
       } else {
         const errorData = await response.json();
         console.error("Error: ", errorData);
+        setState((prev) => ({
+          ...prev,
+          error: true,
+          errorMsg: "Error al registrar",
+        }));
       }
     } catch (error) {
       console.error("Error de servidor: ", error);
@@ -236,7 +298,7 @@ function Servicios() {
     }
   };
 
-  const listarRegistros = async (terminoBusqueda = "") => {
+  const listarRegistros = async (searchArg?: string, statusArg?: string | null) => {
     if (!accessToken) {
       setStateServicio((prev) => ({
         ...prev,
@@ -247,17 +309,30 @@ function Servicios() {
       return;
     }
 
-    let filterBody = {
-      filterSearch: {},
-    };
+    const searchFinal = searchArg !== undefined ? searchArg: terminoBusqueda
 
-    if (terminoBusqueda && terminoBusqueda.trim() !== "") {
-      filterBody = {
-        filterSearch: terminoBusqueda,
-      };
+    const statusFinal = statusArg !== undefined ? statusArg : filtroEstado
+
+    setTerminoBusqueda(searchFinal)
+    setFiltroEstado(statusFinal)
+
+   let filterContent: any = {};
+
+
+    if (searchFinal && searchFinal.trim() !== "") {
+
+      filterContent = searchFinal.trim(); 
     }
 
-    console.log("Filtro: ", filterBody);
+    if (statusFinal) {
+      filterContent = statusFinal; 
+    }
+
+    const dataToSend = {
+      filterSearch: filterContent,
+    };
+
+    console.log("Filtro: ", dataToSend);
     try {
       const response = await fetch(apiObtenerServicios, {
         method: "POST",
@@ -265,10 +340,11 @@ function Servicios() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify(filterBody),
+        body: JSON.stringify(dataToSend),
       });
 
       const data = await response.json();
+      console.log("Datos:  ", data);
 
       if (response.ok && data.success) {
         const registrosApi = data.details;
@@ -291,8 +367,8 @@ function Servicios() {
         errorMsg: "Error de conexion",
       }));
       console.error("Error del servidor: ", error);
-    }finally{
-      setIsLoading(false)
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -323,18 +399,19 @@ function Servicios() {
     { key: "cliente", header: "Cliente" },
     { key: "placa", header: "Placa Vehículo" },
     { key: "fecha_factura", header: "Fecha Factura" },
-    { key: "monto_final", header: "Monto Neto" },
+    { key: "monto_final", header: "Monto" },
     { key: "estado_pago", header: "Estado" },
     { key: "actions", header: "Acciones" },
   ];
 
-  const userRegistro = (
-    //Logica para el envío del formulario
+
+  const modalActions = (
     <button
-      form="FormularioServicio"
+      onClick={manejadorSubmit}
+      disabled={pendingServices.length === 0}
       className="btn bg-blue-500 hover:bg-blue-600 text-white"
     >
-      Registrar
+      Registrar ({pendingServices.length})
     </button>
   );
 
@@ -351,6 +428,7 @@ function Servicios() {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    setPendingServices([]);
   };
 
   const handleOpeneModalDetales = (registro: ServicioApi) => {
@@ -381,8 +459,9 @@ function Servicios() {
     }, contador);
   }, [stateServicio.registros]);
 
-  const estadoOriginal = registroSeleccionado?.services.payment_status as EnglishStatus
-  const estadoEspanol = traducirEstado(estadoOriginal)
+  const estadoOriginal = registroSeleccionado?.services
+    .payment_status as EnglishStatus;
+  const estadoEspanol = traducirEstado(estadoOriginal);
 
   const renderDetallesBody = useMemo(() => {
     if (!registroSeleccionado) return null;
@@ -445,19 +524,12 @@ function Servicios() {
           </div>
         </div>
 
-        <div className="border-t pt-4">
-          <h3 className="font-bold text-lg text-gray-900 mb-3">
-            Resumen Financiero
-          </h3>
+        <div className="border-t">
+          
 
-          <div className="flex justify-between items-center mb-2">
-            <span>Precio Base:</span>
-            <span className="font-mono text-gray-600">
-              Bs {parseFloat(registroSeleccionado.services.price).toFixed(2)}
-            </span>
-          </div>
+          
 
-          <div className="flex justify-between items-center mb-2 text-red-600">
+          {/* <div className="flex justify-between items-center mb-2 text-red-600">
             <span>
               Retención ISRL ({registroSeleccionado.retentions.rate_retention}
               %):
@@ -471,12 +543,12 @@ function Servicios() {
                 registroSeleccionado.retentions.total_retention
               ).toFixed(2)}
             </span>
-          </div>
+          </div> */}
 
-          <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-300">
+          <div className="flex justify-between items-center mt-4 pt-2  border-gray-300">
             <span className="font-bold text-lg">Monto Total a Pagar:</span>
             <span className="font-bold text-xl text-blue-600 font-mono">
-              Bs {registroSeleccionado.totalAmount.toFixed(2)}
+              Bs {registroSeleccionado.totalAmount}
             </span>
           </div>
 
@@ -484,7 +556,7 @@ function Servicios() {
             <span
               className={`px-3 py-1 rounded-full text-xs font-bold uppercase
                 ${
-                    estadoEspanol === "Pagado"
+                  estadoEspanol === "Pagado"
                     ? "bg-green-100 text-green-700"
                     : estadoEspanol === "Pendiente"
                     ? "bg-yellow-100 text-yellow-700"
@@ -560,35 +632,47 @@ function Servicios() {
         <section className="flex flex-col flex-grow w-full items-center pl-4 pr-4">
           <ToolBar
             titulo="Servicios Prestados"
-            onSearch={listarRegistros}
+            onSearch={(texto) => listarRegistros(texto)}
             onRegister={handleOpenModal}
           />
-          { isLoading ? (
+          {isLoading ? (
             <div className="w-full flex items-center justify-center py-6">
               <span className="loading loading-spinner loading-xl"></span>
             </div>
           ) : (
             <>
-          <div className="flex flex-row mb-4 w-full items-start gap-5">
-            <div className="p-4 bg-white border border-gray-400 rounded-lg shadow-sm">
-              <span>Total: {contadorServicios.total}</span>
-            </div>
-            <div className="p-4 bg-white border border-gray-400 rounded-lg shadow-sm">
-              <span>Servicios Pagados: {contadorServicios.paid}</span>
-            </div>
-            <div className="p-4 bg-white border border-gray-400 rounded-lg shadow-sm">
-              <span>Servicios Pendintes: {contadorServicios.pending}</span>
-            </div>
-            <div className="p-4 bg-white border border-gray-400 rounded-lg shadow-sm">
-              <span>Servicios Cancelados: {contadorServicios.canceled}</span>
-            </div>
-          </div>
-          <Table
-            data={datosParaTabla}
-            columnas={columnas}
-            onView={handleView}
-          />
-          </>
+              <div className="flex flex-row mb-4 w-full items-start gap-5">
+                <button onClick={() => listarRegistros(undefined, null)} className={`cursor-pointer p-4 bg-white border border-gray-400 rounded-lg shadow-sm ${filtroEstado === null
+                  ? "bg-blue-50 border-blue-500 ring-1 ring-blue-500 text-blue-700 font-bold"
+                  : "bg-white border-gray-400 hover:bg-gray-50 text-gray-700"
+                }`}>
+                Total: {contadorServicios.total}
+                </button>
+                <button onClick={() => listarRegistros(undefined, "pagado")} className={`cursor-pointer p-4 bg-white border border-gray-400 rounded-lg shadow-sm ${filtroEstado === "pagado"
+                  ? "bg-blue-50 border-green-500 ring-1 ring-green-500 text-green-700 font-bold"
+                  : "bg-white border-gray-400 hover:bg-gray-50 text-gray-700"
+                }`}>
+                   Pagados: {contadorServicios.paid}
+                </button>
+                <button onClick={() => listarRegistros(undefined, "pendiente")} className={`cursor-pointer p-4 bg-white border border-gray-400 rounded-lg shadow-sm ${filtroEstado === "pendiente"
+                  ? "bg-blue-50 border-yellow-500 ring-1 ring-yellow-500 text-yellow-700 font-bold"
+                  : "bg-white border-gray-400 hover:bg-gray-50 text-gray-700"
+                }`}>
+                  Pendientes: {contadorServicios.pending}
+                </button>
+                <button onClick={() => listarRegistros(undefined, "cancelado")} className={`cursor-pointer p-4 bg-white border border-gray-400 rounded-lg shadow-sm ${filtroEstado === "cancelado"
+                  ? "bg-blue-50 border-red-500 ring-1 ring-red-500 text-red-700 font-bold"
+                  : "bg-white border-gray-400 hover:bg-gray-50 text-gray-700"
+                }`}>
+                  Cancelados: {contadorServicios.canceled}
+                </button>
+              </div>
+              <Table
+                data={datosParaTabla}
+                columnas={columnas}
+                onView={handleView}
+              />
+            </>
           )}
         </section>
       </main>
@@ -597,93 +681,143 @@ function Servicios() {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         titulo="Registrar Nuevo Servicio"
-        acciones={userRegistro}
+        acciones={modalActions}
       >
-        <form
-          id="FormularioServicio"
-          onSubmit={manejadorSubmit}
-          className="grid grid-cols-2 gap-3"
-        >
-          <div>
-            <SelectClientes
-              endpointUrl={urlClientes}
-              onClienteChange={handleClienteChange}
-            />
-          </div>
-          <div>
-            <SelectVehiculos
-              endpointUrl={urlVehiculos}
-              onVehiculoChange={handleVehiculoChange}
-            />
+        <div className="grid grid-cols-1 gap-4">
+         
+          <div className="border border-gray-400 p-4 rounded-md ">
+            <h4 className="font-semibold text-gray-700 mb-3 border-b pb-2">
+              Datos del Servicio
+            </h4>
+            <form id="FormularioServicio" className="grid grid-cols-2 gap-3">
+             
+              <div>
+                <SelectClientes
+                  endpointUrl={urlClientes}
+                  onClienteChange={(id, name) =>
+                    handleClienteChange(id, name || undefined)
+                  } 
+                />
+              </div>
+              <div>
+                <SelectVehiculos
+                  endpointUrl={urlVehiculos}
+                  onVehiculoChange={(id, placa) =>
+                    handleVehiculoChange(id, placa || undefined)
+                  } 
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Fecha de Inicio:
+                </label>
+                <input
+                  type="date"
+                  name="start_date"
+                  value={formatDateToInput(state.form.start_date)}
+                  onChange={handleDateChange}
+                  className="border border-gray-400 rounded-md shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Fecha de Fin:
+                </label>
+                <input
+                  type="date"
+                  name="end_date"
+                  value={formatDateToInput(state.form.end_date)}
+                  onChange={handleDateChange}
+                  className="border border-gray-400 rounded-md shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+                />
+              </div>
+
+              <div className="flex items-end gap-2 col-span-2">
+                <div className="flex-grow">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Precio:
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    name="price"
+                    value={state.form.price}
+                    onChange={handleInputChange}
+                    className="border border-gray-400 rounded-md shadow-xs w-full p-2 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+                  />
+                </div>
+                <button
+                  onClick={handleAddToList}
+                  type="button" 
+                  className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded h-10 mb-[1px]"
+                >
+                  + Agregar a Lista
+                </button>
+              </div>
+            </form>
+
+            {state.error && (
+              <p className="text-red-500 text-sm mt-2">{state.errorMsg}</p>
+            )}
           </div>
 
-          <div>
-            <label
-              htmlFor="start_date"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Fecha de Inicio:
-            </label>
-            <input
-              type="date"
-              name="start_date"
-              value={formatDateToInput(state.form.start_date)}
-              onChange={handleDateChange}
-              placeholder="Ingrese la Fecha de Inicio"
-              className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-            />
+          <div className="border border-gray-400 rounded-md overflow-hidden">
+            <div className="bg-gray-100 p-2 font-semibold text-sm border-b flex justify-between">
+              <span>Servicios por Registrar</span>
+              <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">
+                {pendingServices.length}
+              </span>
+            </div>
+
+            <div className="max-h-30 overflow-y-auto">
+              {pendingServices.length === 0 ? (
+                <p className="text-gray-400 text-sm p-4 text-center">
+                  Agregue servicios usando el formulario de arriba.
+                </p>
+              ) : (
+                <table className="min-w-full text-sm text-left">
+                  <thead className="bg-gray-50 text-gray-500">
+                    <tr>
+                      <th className="px-3 py-2">Cliente / Vehículo</th>
+                      <th className="px-3 py-2">Fechas</th>
+                      <th className="px-3 py-2">Precio</th>
+                      <th className="px-3 py-2"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {pendingServices.map((item) => (
+                      <tr key={item.temId}>
+                        <td className="px-3 py-2">
+                          <div className="font-medium text-gray-900">
+                            {item.clientName}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {item.vehiclePlate}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-gray-600">
+                          {item.start_date.toLocaleDateString()} -{" "}
+                          {item.end_date.toLocaleDateString()}
+                        </td>
+                        <td className="px-3 py-2 font-mono">{item.price}</td>
+                        <td className="px-3 py-2 text-right">
+                          <button
+                            onClick={() => handleRemoverFromList(item.temId)}
+                            className="text-red-500 hover:text-red-700 font-bold"
+                            title="Eliminar de la lista"
+                          >
+                            &times;
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
-          <div>
-            <label
-              htmlFor="end_date"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Fecha de Finalización:
-            </label>
-            <input
-              type="date"
-              name="end_date"
-              value={formatDateToInput(state.form.end_date)}
-              onChange={handleDateChange}
-              placeholder="Ingrese la Fecha de Finalización"
-              className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="price"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Precio del Servicio:
-            </label>
-            <input
-              type="number"
-              min="0"
-              name="price"
-              value={state.form.price}
-              onChange={handleInputChange}
-              placeholder="Ingrese el Precio"
-              className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="isrl"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Impuesto Sobre la Renta:
-            </label>
-            <input
-              type="number"
-              min="0"
-              name="isrl"
-              value={state.form.isrl}
-              onChange={handleInputChange}
-              placeholder="Ingrese el Impuesto Sobre la Renta"
-              className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-            />
-          </div>
-        </form>
+        </div>
         <div className="min-h-6 text-center">
           {state.error && (
             <span className="text-center text-red-500 text-sm m-0">

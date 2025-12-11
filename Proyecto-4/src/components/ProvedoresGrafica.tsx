@@ -9,6 +9,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+import { apiProveedores } from "../services/apiReportes";
+import { useEffect } from "react";
 
 
 // 🚀 Estos son los datos que usaremos para los proveedores
@@ -22,6 +24,38 @@ const datosProveedores = [
 ];
 
 export function ProvedoresGrafica() {
+
+  const accessToken = localStorage.getItem("token")
+
+  const cargarReporte = async () => {
+    try{
+      const url = `${apiProveedores}2025/12`
+
+      console.log("URL: ",url)
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      })
+
+      const data = await response.json()
+
+      if(response.ok && data.success){
+        console.log("Exito: ",data.details)
+      }else{
+        console.error("Error: ",data.details)
+      }
+    }catch(error){
+      console.error("Error del servidor: ",error)
+    }
+  }
+
+  useEffect(() => {
+    cargarReporte()
+  }, [])
+
   return (
     // 💡 NOTA: La clase grid-cols-2 sugiere que aquí debería ir otra gráfica
     <section className="grid grid-cols-1 gap-4"> 

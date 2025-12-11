@@ -116,7 +116,7 @@ function Clientes() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
     part: "tipo" | "numero"
   ) => {
-    const currentRif = state.form.rif || "V-";
+    const currentRif = state.form.rif || "J-";
     const partes = currentRif.split("-");
 
     const currentType = partes[0];
@@ -127,7 +127,7 @@ function Clientes() {
     if (part === "tipo") {
       newValue = `${e.target.value}-${currentNumber || ""}`;
     } else {
-      newValue = `${currentType || "V"}-${e.target.value}`;
+      newValue = `${currentType || "J"}-${e.target.value}`;
     }
 
     const sytheticEvent = {
@@ -151,7 +151,7 @@ function Clientes() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
     part: "tipo" | "numero"
   ) => {
-    const currentRif = clienteEditar.rif || "V-";
+    const currentRif = clienteEditar.rif || "J-";
     const partes = currentRif.split("-");
 
     const currentType = partes[0]
@@ -162,7 +162,7 @@ function Clientes() {
     if(part === "tipo"){
       newValue = `${e.target.value}-${currentNumber || ""}`
     }else{
-      newValue = `${currentType || "V"}-${e.target.value}`
+      newValue = `${currentType || "J"}-${e.target.value}`
     }
 
     setClienteEditar((prevState) => ({
@@ -615,10 +615,8 @@ function Clientes() {
                 value={letra}
                 className=" bg-white rounded-md mb-2 shadow-xs p-3 border  border-gray-400 cursor-pointer font-semibold focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
               >
-                <option value="V">V</option>
                 <option value="J">J</option>
-                <option value="E">E</option>
-                <option value="G">G</option>
+                <option value="V">V</option>
               </select>
               <input
                 type="text"
@@ -713,10 +711,9 @@ function Clientes() {
                value={letrasEdit}
                className="bg-white rounded-md mb-2 shadow-xs p-3 border  border-gray-400 cursor-pointer font-semibold focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
               >
-                <option value="V">V</option>
+               
                 <option value="J">J</option>
-                <option value="E">E</option>
-                <option value="G">G</option>
+                 <option value="V">V</option>
               </select>
             <input
               type="text"

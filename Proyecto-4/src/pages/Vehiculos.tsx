@@ -3,10 +3,16 @@ import type { Vehiculo, Empleado, TipoVehiculo, Item } from "../types/models";
 import Modal from "../components/Modal/Modal";
 import { useState, useEffect } from "react";
 import Table from "../components/Table/Table";
-import { apiRegistrar, apiEditar, apiVehiculos, apiEliminar, apiReactivar } from "../services/apiVehiculos";
+import {
+  apiRegistrar,
+  apiEditar,
+  apiVehiculos,
+  apiEliminar,
+  apiReactivar,
+  apiExportar,
+} from "../services/apiVehiculos";
 import { apiObtener as apiObtenerEmpleados } from "../services/apiEmpleados";
 import { apiObtenerTipo } from "../services/apiTipo_vehiculos";
-
 
 interface RegisterFormState {
   driver_id: number;
@@ -71,18 +77,26 @@ const initialStateVehiculoEditar: VehiculoEditarState = {
 function Vehiculos() {
   const accessToken = localStorage.getItem("token");
   const [state, setState] = useState<RegisterState>(initialState);
-  const [stateVehiculos, setStateVehiculos] = useState<VehiculosState>(initialStateVehiculos);
+  const [stateVehiculos, setStateVehiculos] = useState<VehiculosState>(
+    initialStateVehiculos
+  );
   const [vehiculosInactivos, setVehiculosInactivos] = useState<Vehiculo[]>([]);
 
   //lista de empleados(con rol choferes)
   const [listaChoferes, setListaChoferes] = useState<Empleado[]>([]);
 
   // tipos de vehículo
-  const [listaTiposVehiculo, setListaTiposVehiculo] = useState<TipoVehiculo[]>([]);
+  const [listaTiposVehiculo, setListaTiposVehiculo] = useState<TipoVehiculo[]>(
+    []
+  );
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [vehiculoEditar, setVehiculoEditar] = useState<VehiculoEditarState>(initialStateVehiculoEditar);
-  const [camposModificados, setCamposModificados] = useState<Partial<VehiculoEditarState>>({});
+  const [vehiculoEditar, setVehiculoEditar] = useState<VehiculoEditarState>(
+    initialStateVehiculoEditar
+  );
+  const [camposModificados, setCamposModificados] = useState<
+    Partial<VehiculoEditarState>
+  >({});
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -90,7 +104,11 @@ function Vehiculos() {
   const [isModalOpenDelete, setIsModalOpenDelete] = useState(false);
   const [isModalOpenRestore, setIsModalOpenRestore] = useState(false);
 
-  const [vistaActual, setVistaActual] = useState<"activos" | "inactivos">("activos");
+  const [isExportar, setIsExportar] = useState<boolean>(false);
+
+  const [vistaActual, setVistaActual] = useState<"activos" | "inactivos">(
+    "activos"
+  );
   const [selectedVehicle, setSelectedVehicle] = useState<Vehiculo | null>(null);
 
   const handleOpenModal = () => {
@@ -118,6 +136,53 @@ function Vehiculos() {
 
   const handleCloseModalEdit = () => {
     setIsModalOpenEdit(false);
+  };
+
+  const exportarRegistros = async () => {
+    if (!accessToken) {
+      console.error("Token no encontrado");
+      return;
+    }
+
+    setIsExportar(true);
+
+    try {
+      const response = await fetch(apiExportar, {
+        method: "GET",
+        headers: {},
+      });
+
+      if (!response.ok) {
+        const errorMsg = await response.text();
+        try {
+          const errorData = JSON.parse(errorMsg);
+          console.error("Error al exportar: ", errorData.message);
+        } catch (error) {
+          console.error("Error desconocido: ", errorMsg);
+        }
+      }
+
+      const blob = await response.blob();
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+
+      a.href = url;
+
+      a.download = "reporte_vehiculos.pdf";
+
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      window.URL.revokeObjectURL(url);
+
+      console.log("Reporte descrgado");
+    } catch (error) {
+      console.error("Error del Servidor: ", error);
+    } finally {
+      setIsExportar(false);
+    }
   };
 
   //funcion para los empleados activos con rol de chofer  y activos
@@ -176,7 +241,9 @@ function Vehiculos() {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
 
     setState((prevState) => ({
@@ -190,7 +257,9 @@ function Vehiculos() {
     }));
   };
 
-  const handleInputChangeEdit = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChangeEdit = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
 
     setVehiculoEditar((prevState) => ({
@@ -239,17 +308,23 @@ function Vehiculos() {
           const busqueda = terminoBusqueda.toLowerCase();
           registrosApi = registrosApi.filter((vehiculo: Vehiculo) => {
             return (
-              (vehiculo.model && vehiculo.model.toLowerCase().includes(busqueda)) ||
-              (vehiculo.license_plate && vehiculo.license_plate.toLowerCase().includes(busqueda))
+              (vehiculo.model &&
+                vehiculo.model.toLowerCase().includes(busqueda)) ||
+              (vehiculo.license_plate &&
+                vehiculo.license_plate.toLowerCase().includes(busqueda))
             );
           });
         }
 
         setStateVehiculos((prev) => ({
           ...prev,
-          registros: registrosApi.filter((v: Vehiculo) => v.is_active !== false),
+          registros: registrosApi.filter(
+            (v: Vehiculo) => v.is_active !== false
+          ),
         }));
-        setVehiculosInactivos(registrosApi.filter((v: Vehiculo) => v.is_active === false));
+        setVehiculosInactivos(
+          registrosApi.filter((v: Vehiculo) => v.is_active === false)
+        );
       } else {
         setStateVehiculos((prevState) => ({
           ...prevState,
@@ -298,7 +373,8 @@ function Vehiculos() {
       return;
     }
     try {
-      const { driver_id, model, license_plate, total_seats, vehicle_type_id } = state.form;
+      const { driver_id, model, license_plate, total_seats, vehicle_type_id } =
+        state.form;
 
       const dataToSend = {
         driver_id: Number(driver_id),
@@ -399,10 +475,16 @@ function Vehiculos() {
 
     /// 1. Preparar datos para la API (Renombrar drive_id a driver_id)
     const payload = {
-      ...(datosEditar.driver_id && { driver_id: Number(datosEditar.driver_id) }),
+      ...(datosEditar.driver_id && {
+        driver_id: Number(datosEditar.driver_id),
+      }),
       ...(datosEditar.model && { model: datosEditar.model }),
-      ...(datosEditar.total_seats && { total_seats: Number(datosEditar.total_seats) }),
-      ...(datosEditar.vehicle_type_id && { vehicle_type_id: Number(datosEditar.vehicle_type_id) }),
+      ...(datosEditar.total_seats && {
+        total_seats: Number(datosEditar.total_seats),
+      }),
+      ...(datosEditar.vehicle_type_id && {
+        vehicle_type_id: Number(datosEditar.vehicle_type_id),
+      }),
       // is_active: true // Opcional según tu lógica
     };
 
@@ -549,7 +631,9 @@ function Vehiculos() {
       header: "TIPO VEHICULO",
       render: (item: Item) => {
         const vehiculo = item as Vehiculo;
-        const tipo = listaTiposVehiculo.find((t) => t.id === vehiculo.vehicle_type_id);
+        const tipo = listaTiposVehiculo.find(
+          (t) => t.id === vehiculo.vehicle_type_id
+        );
         return tipo ? tipo.type_name : "Desconocido";
       },
     },
@@ -567,13 +651,19 @@ function Vehiculos() {
   };
 
   const userRegistro = (
-    <button form="FormularioVehiculo" className="btn bg-blue-500 hover:bg-blue-600 text-white">
+    <button
+      form="FormularioVehiculo"
+      className="btn bg-blue-500 hover:bg-blue-600 text-white"
+    >
       Registrar
     </button>
   );
 
   const userEdit = (
-    <button form="FormularioEditarVehiculo" className="btn bg-blue-500 hover:bg-blue-600 text-white">
+    <button
+      form="FormularioEditarVehiculo"
+      className="btn bg-blue-500 hover:bg-blue-600 text-white"
+    >
       Registrar
     </button>
   );
@@ -596,24 +686,32 @@ function Vehiculos() {
           </div>
         )}
         <section className="flex flex-col flex-grow items-center pl-4 pr-4">
-          <ToolBar titulo="Vehículos" onRegister={handleOpenModal} onSearch={listarRegistros} />
+          <ToolBar
+            titulo="Vehículos"
+            onRegister={handleOpenModal}
+            onSearch={listarRegistros}
+            onExport={exportarRegistros}
+            isExporting={isExportar}
+          />
 
           <div className="w-full  flex items-center justify-around border border-gray-400 border-b-white rounded-lg rounded-b-none  shadow-md bg-white p-2">
             <button
               onClick={() => setVistaActual("activos")}
-              className={` ${vistaActual === "activos"
-                ? "py-1 px-2 border-b-3  border-green-500 transition duration-300 cursor-pointer"
-                : "cursor-pointer"
-                } `}
+              className={` ${
+                vistaActual === "activos"
+                  ? "py-1 px-2 border-b-3  border-green-500 transition duration-300 cursor-pointer"
+                  : "cursor-pointer"
+              } `}
             >
               Vehículos Activos ({stateVehiculos.registros.length})
             </button>
             <button
               onClick={() => setVistaActual("inactivos")}
-              className={` ${vistaActual === "inactivos"
-                ? "py-1 px-2 border-b-3  border-red-400 transition duration-300 cursor-pointer "
-                : "hover:bg-gray-100 transition-all cursor-pointer"
-                } `}
+              className={` ${
+                vistaActual === "inactivos"
+                  ? "py-1 px-2 border-b-3  border-red-400 transition duration-300 cursor-pointer "
+                  : "hover:bg-gray-100 transition-all cursor-pointer"
+              } `}
             >
               Vehículos Inactivos ({vehiculosInactivos.length})
             </button>
@@ -625,7 +723,11 @@ function Vehiculos() {
             </div>
           ) : (
             <Table
-              data={vistaActual === "activos" ? stateVehiculos.registros : vehiculosInactivos}
+              data={
+                vistaActual === "activos"
+                  ? stateVehiculos.registros
+                  : vehiculosInactivos
+              }
               columnas={columnas}
               onEdit={
                 vistaActual === "activos"
@@ -633,7 +735,9 @@ function Vehiculos() {
                   : undefined
               }
               onDelete={vistaActual === "activos" ? onDeleteHandler : undefined}
-              onRestore={vistaActual === "inactivos" ? onRestoreHandler : undefined}
+              onRestore={
+                vistaActual === "inactivos" ? onRestoreHandler : undefined
+              }
               emptyMessage={`No hay vehículos ${vistaActual}.`}
             />
           )}
@@ -645,9 +749,16 @@ function Vehiculos() {
         titulo="Registrar Nuevo Vehículo"
         acciones={userRegistro}
       >
-        <form id="FormularioVehiculo" onSubmit={manejadorSubmit} className="grid grid-cols-2 gap-3">
+        <form
+          id="FormularioVehiculo"
+          onSubmit={manejadorSubmit}
+          className="grid grid-cols-2 gap-3"
+        >
           <div>
-            <label htmlFor="driver_id" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="driver_id"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Chofer Asignado:
             </label>
 
@@ -667,7 +778,10 @@ function Vehiculos() {
             </select>
           </div>
           <div>
-            <label htmlFor="license_plate" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="license_plate"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Placa:
             </label>
             <input
@@ -680,7 +794,10 @@ function Vehiculos() {
             />
           </div>
           <div>
-            <label htmlFor="total_seats" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="total_seats"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Numero De Asientos:
             </label>
             <input
@@ -693,7 +810,10 @@ function Vehiculos() {
             />
           </div>
           <div>
-            <label htmlFor="vehicle_type_id" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="vehicle_type_id"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Tipo de Vehículo:
             </label>
             <select
@@ -712,7 +832,10 @@ function Vehiculos() {
             </select>
           </div>
           <div>
-            <label htmlFor="model" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="model"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Modelo:
             </label>
             <input
@@ -726,7 +849,9 @@ function Vehiculos() {
           </div>
           <div className="min-h-6 text-center">
             {state.error && (
-              <span className="text-center text-red-500 text-sm m-0">{state.errorMsg}</span>
+              <span className="text-center text-red-500 text-sm m-0">
+                {state.errorMsg}
+              </span>
             )}
           </div>
         </form>
@@ -743,7 +868,10 @@ function Vehiculos() {
           className="grid grid-cols-2 gap-3"
         >
           <div>
-            <label htmlFor="drive_id" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="drive_id"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Chofer Asignado (Editar):
             </label>
             <select
@@ -761,7 +889,10 @@ function Vehiculos() {
             </select>
           </div>
           <div>
-            <label htmlFor="license_plate" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="license_plate"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Placa:
             </label>
             <input
@@ -774,7 +905,10 @@ function Vehiculos() {
             />
           </div>
           <div>
-            <label htmlFor="total_seats" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="total_seats"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Numero De Asientos:
             </label>
             <input
@@ -787,7 +921,10 @@ function Vehiculos() {
             />
           </div>
           <div>
-            <label htmlFor="vehicle_type_id" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="vehicle_type_id"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Tipo de Vehículo:
             </label>
 
@@ -807,7 +944,10 @@ function Vehiculos() {
             </select>
           </div>
           <div>
-            <label htmlFor="model" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="model"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Modelo:
             </label>
             <input
@@ -821,7 +961,9 @@ function Vehiculos() {
           </div>
           <div className="col-span-2 text-center m-0  min-h-6">
             {vehiculoEditar.errorMsg && (
-              <span className="text-red-600 text-sm m-0">{vehiculoEditar.errorMsg}</span>
+              <span className="text-red-600 text-sm m-0">
+                {vehiculoEditar.errorMsg}
+              </span>
             )}
           </div>
         </form>
@@ -832,12 +974,18 @@ function Vehiculos() {
         onClose={handleCloseModalDelete}
         titulo="Confirmar Eliminación"
         acciones={
-          <button onClick={eliminarVehiculo} className="btn bg-red-500 text-white hover:bg-red-600">
+          <button
+            onClick={eliminarVehiculo}
+            className="btn bg-red-500 text-white hover:bg-red-600"
+          >
             Confirmar
           </button>
         }
       >
-        <p>¿Estás seguro de que deseas desactivar el vehículo con placa <strong>{selectedVehicle?.license_plate}</strong>?</p>
+        <p>
+          ¿Estás seguro de que deseas desactivar el vehículo con placa{" "}
+          <strong>{selectedVehicle?.license_plate}</strong>?
+        </p>
       </Modal>
 
       <Modal
@@ -845,12 +993,18 @@ function Vehiculos() {
         onClose={handleCloseModalRestore}
         titulo="Confirmar Reactivación"
         acciones={
-          <button onClick={reactivarVehiculo} className="btn bg-green-500 text-white hover:bg-green-600">
+          <button
+            onClick={reactivarVehiculo}
+            className="btn bg-green-500 text-white hover:bg-green-600"
+          >
             Confirmar
           </button>
         }
       >
-        <p>¿Estás seguro de que deseas reactivar el vehículo con placa <strong>{selectedVehicle?.license_plate}</strong>?</p>
+        <p>
+          ¿Estás seguro de que deseas reactivar el vehículo con placa{" "}
+          <strong>{selectedVehicle?.license_plate}</strong>?
+        </p>
       </Modal>
     </>
   );
