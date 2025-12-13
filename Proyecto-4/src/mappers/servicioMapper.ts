@@ -37,7 +37,8 @@ export const mapServiciosToTabla = (registrosApi: ServicioApi[]): ItemPlana[] =>
             cliente: registro.client.name,
             placa: registro.vehicle.license_plate,
             estado_pago: estatoTraducido,
-
+            nombre_conductor: registro.vehicle.name_driver,
+            apellido_conductor: registro.vehicle.lastname_driver,
             fecha_factura: fechaFactura,
             monto_final: montoFinal
         }

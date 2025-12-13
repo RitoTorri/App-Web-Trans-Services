@@ -6,19 +6,10 @@ import { apiRegistrar, apiObtener } from "../services/apiCompras";
 import type { Item } from "../types/models";
 import Table from "../components/Table/Table";
 
-// interface Taxes {
-//   code: string;
-//   name: string;
-//   percentage: number;
-// }
-
 interface RegisterFormState {
-  // control_number: string;
-  // invoice_number: string;
   description: string;
   invoice_date: string;
   subtotal: number;
-  // taxes: Taxes[];
 }
 
 interface RegisterState {
@@ -44,14 +35,9 @@ interface itemCompra {
 
 const initialState: RegisterState = {
   form: {
-    // control_number: "",
-    // invoice_number: "",
     description: "",
     invoice_date: "",
     subtotal: 0,
-    // taxes: [
-    //   { code: "iva", name: "impuesto al valor agregado", percentage: 16 },
-    // ],
   },
   error: false,
   errorMsg: "",
@@ -82,12 +68,11 @@ const formatInvoiceDate = (dateString: string) => {
   return `${day}/${month}/${year}`;
 };
 
-
 const contarEstadosDePago = (registros: any[]): Record<string, number> => {
   if (!registros || registros.length === 0) {
     return {};
   }
-  
+
   const counts = registros.reduce((accumulator, registro) => {
     const status = registro.status;
     accumulator[status] = (accumulator[status] || 0) + 1;
@@ -99,6 +84,7 @@ const contarEstadosDePago = (registros: any[]): Record<string, number> => {
 
 function Compras() {
   const accessToken = localStorage.getItem("token");
+  const rol = localStorage.getItem('rol')
 
   const [state, setState] = useState<RegisterState>(initialState);
   const [stateCompras, setStateCompras] =
@@ -117,6 +103,9 @@ function Compras() {
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const [fechaDesde, setFechaDesde] = useState<string>("");
+  const [fechaHasta, setFechaHasta] = useState<string>("");
 
   const urlProveedores = "http://localhost:3000/api/trans/services/providers";
 
@@ -146,6 +135,12 @@ function Compras() {
       urlObtener = `${apiObtener}/search/${busqueda}`;
     }
 
+    if(fechaHasta && fechaDesde){
+      const fechaHastaFormateada = encodeURIComponent(fechaHasta.trim())
+      const fechaDesdeFormateada = encodeURIComponent(fechaDesde.trim())
+      urlObtener = `${apiObtener}-range?start=${fechaDesdeFormateada}&end=${fechaHastaFormateada}`
+    }
+
     try {
       const response = await fetch(urlObtener, {
         method: "GET",
@@ -156,6 +151,9 @@ function Compras() {
       });
 
       const data = await response.json();
+
+
+      console.log('ROL: ',rol)
 
       if (response.ok && data.success) {
         const registrosApi = data.details;
@@ -326,12 +324,12 @@ function Compras() {
   };
 
   const statusCount = useMemo(() => {
-    return contarEstadosDePago(stateCompras.registros)
-  }, [stateCompras.registros])
+    return contarEstadosDePago(stateCompras.registros);
+  }, [stateCompras.registros]);
 
   const columnas = [
     { key: "control_number", header: "Número de Control" },
-    {key: "description", header: "Descripción"},
+    { key: "description", header: "Descripción" },
     { key: "invoice_date", header: "Fecha Factura" },
     { key: "total_amount", header: "Monto Neto" },
     { key: "status", header: "Estado" },
@@ -531,13 +529,59 @@ function Compras() {
                   Total: {stateCompras.registros.length}
                 </div>
                 <div className="p-4 bg-white border border-gray-400 rounded-lg shadow-sm">
-                  Pagados: {statusCount['pagado']}
+                  Pagados: {statusCount["pagado"]}
                 </div>
                 <div className="p-4 bg-white border border-gray-400 rounded-lg shadow-sm">
-                  Pendientes: {statusCount['pendiente']}
+                  Pendientes: {statusCount["pendiente"]}
                 </div>
               </div>
-              
+              <div className="w-full flex items-center mb-4 gap-2 bg-white p-2 rounded shadow-sm border border-gray-400">
+                <span>De: </span>
+                <div>
+                  <input
+                    type="date"
+                    value={fechaDesde}
+                    onChange={(e) => setFechaDesde(e.target.value)}
+                    className="border border-gray-400 rounded-md shadow-inner  p-1.5 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+                  />
+                </div>
+                <span>Hasta:</span>
+                <div>
+                  <input
+                    type="date"
+                    value={fechaHasta}
+                    onChange={(e) => setFechaHasta(e.target.value)}
+                    className="border border-gray-400 rounded-md shadow-inner  p-1.5 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+                  />
+                </div>
+                <button
+                  className="btn bg-blue-500 pt-2 pb-2 text-white rounded hover:bg-blue-600"
+                  onClick={() => listarRegistros()}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    fill="currentColor"
+                    className="bi bi-search"
+                    viewBox="0 0 16 16"
+                  >
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+                  </svg>
+                </button>
+                {(fechaDesde || fechaHasta) && (
+                  <button
+                    onClick={() => {
+                      setFechaDesde("");
+                      setFechaHasta("");
+                    }}
+                    className="btn text-xs bg-red-400 text-white"
+                  >
+                    Limpiar Fechas
+                  </button>
+                )}
+              </div>
+
               <Table
                 data={registrosFormateados}
                 columnas={columnas}
