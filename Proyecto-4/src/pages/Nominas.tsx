@@ -809,8 +809,8 @@ function Nominas() {
                                     {emp.name} {emp.lastname} (C.I: {emp.ci})
                                 </option>
                             ))}
-                        </select>
-                    </div>
+                        </select >
+                    </div >
                     <div>
                         <label htmlFor="period_start" className="block text-sm font-medium text-gray-700 mb-1">Period Start:</label>
                         <input
@@ -893,18 +893,18 @@ function Nominas() {
                     <div className="col-span-2 text-center m-0 min-h-6">
                         {nominaEditar.errorMsg && <span className="text-red-600 text-sm m-0">{nominaEditar.errorMsg}</span>}
                     </div>
-                </form>
-            </Modal>
+                </form >
+            </Modal >
 
             {/* Modal Detalles */}
-            <Modal
+            < Modal
                 isOpen={isModalOpenDetalles}
                 onClose={handleCloseModalDetalles}
                 titulo="Detalles de Nómina"
                 acciones={renderDetallesAcciones}
             >
                 {renderDetallesBody}
-            </Modal>
+            </Modal >
         </>
     );
 
