@@ -102,7 +102,7 @@ function InicioSesion() {
       <main className="flex h-screen justify-center items-center bg-white ">
         <section className="w-xl flex flex-col justify-center items-center bg-slate-700 rounded-lg p-8 relative mt-16 shadow-xl">
 
-          <div className="flex justify-center mb-8 w-60 h-60 flex-shrink-0 mx-auto rounded-full border-4 bg-sky-500 shadow-lg p-0.5 absolute -top-32 left-1/2 transform -translate-x-1/2 z-10" >
+          <div className="flex justify-center mb-8 w-60 h-60 flex-shrink-0 mx-auto rounded-full border-4 bg-sky-500 shadow-lg p-0.5 absolute -top-28 left-1/2 transform -translate-x-1/2 z-10" >
             <img 
               // ubicacion de la imagen
               src="https://i.pinimg.com/736x/14/20/fd/1420fdb2c1b84a55bc9a61e3050b0fa5.jpg" 

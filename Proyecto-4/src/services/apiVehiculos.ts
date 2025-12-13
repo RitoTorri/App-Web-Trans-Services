@@ -7,3 +7,5 @@ export const apiEliminar = "http://localhost:3000/api/trans/services/vehicles/de
 export const apiVehiculos = "http://localhost:3000/api/trans/services/findAll"
 
 export const apiReactivar = "http://localhost:3000/api/trans/services/reactivate/";
+
+export const apiExportar = "http://localhost:3000/api/trans/services/reports/vehicles/pdf"

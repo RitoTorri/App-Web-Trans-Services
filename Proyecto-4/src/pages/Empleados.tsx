@@ -12,6 +12,7 @@ import {
   apiExportar
 } from "../services/apiEmpleados";
 
+
 interface Contact {
   id?: number | null;
   contact_info: string;
@@ -22,6 +23,8 @@ interface RegisterFormState {
   lastname: string;
   ci: string;
   rol: string;
+  salary_monthly: number;
+  date_of_entry: Date;
   contact_email_info: string;
   contact_phone_info: string;
   contacts: Contact[];
@@ -39,6 +42,8 @@ const initialState: RegisterState = {
     lastname: "",
     ci: "",
     rol: "",
+    salary_monthly: 0,
+    date_of_entry: new Date(),
     contact_email_info: "",
     contact_phone_info: "",
     contacts: [
@@ -85,6 +90,8 @@ interface EmpleadoEditarState {
   lastname: string;
   ci: string;
   rol: string;
+  salary_monthly: number;
+  date_of_entry: Date;
   telefono: string;
   correo: string;
   contacts?: Contact[];
@@ -98,6 +105,8 @@ const initialStateEmpleadosEditar: EmpleadoEditarState = {
   lastname: "",
   ci: "",
   rol: "",
+  salary_monthly: 0,
+  date_of_entry: new Date(),
   telefono: "",
   correo: "",
   contacts: [
@@ -108,6 +117,34 @@ const initialStateEmpleadosEditar: EmpleadoEditarState = {
   ],
   error: false,
   errorMsg: "",
+};
+
+const formatDateToInput = (date: Date): string => {
+  // Si la fecha existe y es un objeto Date, la formatea.
+  if (date instanceof Date && !isNaN(date.getTime())) {
+    const year = date.getUTCFullYear()
+    const month = (date.getUTCMonth() + 1).toString().padStart(2, '0')
+    const day = date.getUTCDate().toString().padStart(2, '0')
+
+    return `${year}-${month}-${day}`;
+  }
+  return "";
+};
+
+const formatInvoiceDate = (dateString: string) => {
+  if (!dateString) return "N/A"
+  const date = new Date(dateString)
+
+  if(isNaN(date.getTime())) return "N/A"
+
+  return new Intl.DateTimeFormat("es-VE", {
+    timeZone: "UTC",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  }).format(date)
+
+  
 };
 
 function Empleados() {
@@ -143,11 +180,49 @@ function Empleados() {
     "activos"
   );
 
-  const datosRenderizar =
-    vistaActual === "activos"
-      ? stateEmpleados.registros
-      : stateEmpleadosInactivos.registros;
+  
 
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
+  
+      let newValue: any = value;
+  
+      if (name === "date_of_entry") {
+        if (value) {
+          newValue = new Date(value);
+        } else {
+          newValue = new Date(NaN);
+        }
+      }
+
+      setState((prevState) => ({
+        ...prevState,
+        form: {
+          ...prevState.form,
+          [name]: newValue
+        }
+      }))
+    }
+
+   const handleDateChangeEdit = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const {name, value} = e.target
+
+    const dateForState = value ? `${value}T00:00:00` : ""
+
+    const newDate = value ? new Date(dateForState) : new Date(NaN)
+
+    setEmpleadoEditar((prevState) => ({
+      ...prevState,
+      [name]: newDate,
+      error: false,
+      errorMsg: ""
+    }))
+
+    setCamposModificados((prevFields) => ({
+      ...prevFields,
+      [name]: newDate
+    }))
+   } 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
@@ -290,9 +365,6 @@ function Empleados() {
         },
       });
 
-      console.log("DEBUG: estatus http de la respuesta", response.status);
-      console.log("DEBUG: response.ok", response.ok);
-
       const data = await response.json();
 
       if (response.ok && data.success) {
@@ -335,7 +407,9 @@ function Empleados() {
       !state.form.ci ||
       !state.form.rol ||
       !state.form.contact_email_info ||
-      !state.form.contact_phone_info
+      !state.form.contact_phone_info ||
+      !state.form.date_of_entry ||
+      !state.form.salary_monthly
     ) {
       setState((prev) => ({
         ...prev,
@@ -353,6 +427,8 @@ function Empleados() {
         rol,
         contact_email_info,
         contact_phone_info,
+        date_of_entry,
+        salary_monthly
       } = state.form;
 
       const contacts = [];
@@ -374,8 +450,12 @@ function Empleados() {
         lastname,
         ci,
         rol,
+        date_of_entry: date_of_entry.toISOString().split("T")[0],
+        salary_monthly,
         contacts: contacts,
       };
+
+      console.log("Datos: ",datoToSend)
 
       const response = await fetch(apiRegistrar, {
         method: "POST",
@@ -428,13 +508,11 @@ function Empleados() {
       errorMsg: "",
     }));
 
-    const datosAEnviar: Partial<EmpleadoEditarState & { contacts: Contact[] }> =
-      {
-        ...camposModificados,
-      };
+    const datosAEnviar: any = {
+      ...camposModificados
+    }
 
     const contactosModificadosAEnviar: Contact[] = [];
-
     if (empleadoEditar.contacts && originalContacts.length > 0) {
       empleadoEditar.contacts.forEach((currentContact) => {
         const original = originalContacts.find(
@@ -453,6 +531,12 @@ function Empleados() {
 
     delete datosAEnviar.correo;
     delete datosAEnviar.telefono;
+
+    if(datosAEnviar.date_of_entry && datosAEnviar.date_of_entry instanceof Date){
+      if(!isNaN(datosAEnviar.date_of_entry.getTime())){
+        datosAEnviar.date_of_entry =datosAEnviar.date_of_entry.toISOString().split("T")[0]
+      }
+    }
 
     if (
       !empleadoEditar.name ||
@@ -568,6 +652,8 @@ function Empleados() {
       lastname: empleado.lastname,
       ci: empleado.ci,
       rol: empleado.rol,
+      salary_monthly: empleado.salary_monthly,
+      date_of_entry: new Date(empleado.date_of_entry),
       correo: contactosOrdenados[0].contact_info,
       telefono: contactosOrdenados[1].contact_info,
       contacts: contactosOrdenados,
@@ -604,6 +690,7 @@ function Empleados() {
 
   const handleCloseModalEdit = () => {
     setIsModalOpenEdit(false);
+    setCamposModificados({})
   };
 
   const handleCloseModalDelete = () => {
@@ -616,12 +703,14 @@ function Empleados() {
   }, []);
 
   const columnas = [
+    { key: "ci", header: "Cédula" },
     { key: "name", header: "Nombre" },
     { key: "lastname", header: "Apellido" },
-    { key: "ci", header: "Cédula" },
     { key: "rol", header: "Rol" },
     { key: "telefono", header: "Teléfono" },
     { key: "correo", header: "Correo" },
+    {key: "salary_monthly", header: "Salario Mensual"},
+    {key: "date_of_entry_visual", header: "Fecha de Entrada"},
     { key: "actions", header: "Acciones" },
   ];
 
@@ -724,6 +813,8 @@ function Empleados() {
       lastname: string;
       ci: string;
       rol: string;
+      salary_monthly: number;
+      date_of_entry: Date;
       telefono: string;
       correo: string;
       contacts: Contact[];
@@ -781,6 +872,27 @@ function Empleados() {
       }));
     }
   };
+
+  const registrosFormateados = stateEmpleados.registros.map((registro) => {
+    return{
+      ...registro,
+      date_of_entry: registro.date_of_entry,
+      date_of_entry_visual: formatInvoiceDate(registro.date_of_entry as unknown as string)
+    }
+  })
+
+  const registrosFormateadosInactivos = stateEmpleadosInactivos.registros.map((registro) => {
+    return{
+      ...registro,
+       date_of_entry: registro. date_of_entry,
+        date_of_entry_visual: formatInvoiceDate(registro. date_of_entry as unknown as string)
+    }
+  })
+
+  const datosRenderizar =
+    vistaActual === "activos"
+      ? registrosFormateados
+      : registrosFormateadosInactivos
 
   
   const userDelete = (
@@ -1019,6 +1131,31 @@ function Empleados() {
               className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
           </div>
+          <div>
+            <label htmlFor="date_of_entry" className="block text-sm font-medium text-gray-700 mb-1">
+              Fecha de entrada: 
+            </label>
+            <input 
+            type="date"
+            name="date_of_entry"
+            value={formatDateToInput(state.form.date_of_entry)}
+            onChange={handleDateChange}
+            className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+            />
+          </div>
+          <div>
+            <label htmlFor="" className="block text-sm font-medium text-gray-700 mb-1">
+              Salario Mensual:
+            </label>
+            <input 
+            type="number"
+            min="0"
+            name="salary_monthly"
+            onChange={handleInputChange}
+            value={state.form.salary_monthly}
+            className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+            />
+          </div>
         </form>
         <div className="min-h-6 text-center">
           {state.error && (
@@ -1132,7 +1269,33 @@ function Empleados() {
               value={empleadoEditar.correo}
               onChange={handleInputChangeEdit}
               placeholder="Ingrese el Correo Electrónico"
-              className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+              className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+            />
+          </div>
+          <div>
+            <label htmlFor=""
+            className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Fecha de Entrada:
+            </label>
+            <input 
+            type="date"
+            name="date_of_entry"
+            value={formatDateToInput(empleadoEditar.date_of_entry)}
+            onChange={handleDateChangeEdit}
+            className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+            />
+          </div>
+          <div>
+            <label htmlFor="">
+              Salario Mensual:
+            </label>
+            <input 
+            type="number"
+            name="salary_monthly"
+            value={empleadoEditar.salary_monthly}
+            onChange={handleInputChangeEdit}
+            className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
           </div>
         </form>
@@ -1151,7 +1314,7 @@ function Empleados() {
         acciones={userDelete}
       >
         <p className="text-lg">
-          ¿Está seguro de eliminar al empleado {nombreEmpleado || "Desconocido"}
+          ¿Está seguro de eliminar al empleado <span className="font-bold">{nombreEmpleado || "Desconocido"}</span>
           ?
         </p>
       </Modal>

@@ -10,6 +10,7 @@ import {
   apiEliminar,
   apiRestaurar,
   apiEditar,
+  apiExportar
 } from "../services/apiProveedor";
 
 interface Contact {
@@ -128,6 +129,8 @@ function Proveedores() {
   const [isLoadingActivos, setIsLoadingActivos] = useState<boolean>(true);
   const [isLoadingInactivos, setIsLoadingInactivos] = useState<boolean>(true);
 
+  const [isExporting, setIsExporting] = useState<boolean>(false)
+
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [vistaActual, setVistaActual] = useState<"activos" | "inactivos">(
@@ -151,6 +154,40 @@ function Proveedores() {
       errorMsg: "",
     }));
   };
+
+   const onRifChange = (
+      e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+      part: "tipo" | "numero"
+    ) => {
+      const currentRif = state.form.rif || "J-";
+      const partes = currentRif.split("-");
+  
+      const currentType = partes[0];
+      const currentNumber = partes.slice(1).join("-");
+  
+      let newValue = "";
+  
+      if (part === "tipo") {
+        newValue = `${e.target.value}-${currentNumber || ""}`;
+      } else {
+        newValue = `${currentType || "J"}-${e.target.value}`;
+      }
+  
+      const sytheticEvent = {
+        target: {
+          name: "rif",
+          value: newValue,
+        },
+      };
+  
+      handleInputChange(sytheticEvent as any);
+    };
+
+    const rifCompleto = state.form.rif || "";
+  const partes = rifCompleto.split("-");
+
+  const letra = partes[0];
+  const numero = partes.slice(1).join("-");
 
   const handleInputChangeEdit = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -183,6 +220,43 @@ function Proveedores() {
       }));
     }
   };
+
+  const onRifChangeEdit = (
+      e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+      part: "tipo" | "numero"
+    ) => {
+      const currentRif = proveedorEditar.rif || "J-";
+      const partes = currentRif.split("-");
+  
+      const currentType = partes[0]
+      const currentNumber = partes.slice(1).join("-")
+  
+      let newValue = ""
+  
+      if(part === "tipo"){
+        newValue = `${e.target.value}-${currentNumber || ""}`
+      }else{
+        newValue = `${currentType || "J"}-${e.target.value}`
+      }
+  
+      setProveedorEditar((prevState) => ({
+        ...prevState,
+        rif: newValue,
+        error: false,
+        errorMsg: ""
+      }))
+  
+      setCamposModificados((prevFields) => ({
+        ...prevFields,
+        rif: newValue
+      }))
+    }
+
+   const rifCompletoEdit = proveedorEditar.rif || "";
+  const partesEdit = rifCompletoEdit.split("-") 
+
+  const letrasEdit = partesEdit[0]
+  const numerosEdit = partesEdit.slice(1).join("-")
 
   const listarRegistros = async (terminoBusqueda = "") => {
     if (!accessToken) {
@@ -567,7 +641,7 @@ function Proveedores() {
       if (response.ok && data.success) {
         console.log("Registro Editado");
         handleCloseModalEdit();
-        setSuccessMessage("Empleado Editado con  exito.");
+        setSuccessMessage("Proveedor Editado con  exito.");
         listarRegistros();
         setCamposModificados({});
         setTimeout(() => {
@@ -590,6 +664,53 @@ function Proveedores() {
       }));
     }
   };
+
+  const exportarRegistro = async () => {
+    if(!accessToken){
+      console.error("Token no encontrado")
+      return
+    }
+
+    setIsExporting(true)
+    try{
+      const response = await fetch(apiExportar, {
+        method: "GET",
+        headers: {
+           Authorization: `Bearer ${accessToken}`
+        }
+      })
+
+      if(!response.ok){
+        const errorMsg = await response.text()
+        try{
+          const errorData = JSON.parse(errorMsg)
+          console.error("Error al exportar: ", errorData.message)
+        }catch{
+          console.error("Error desconocido: ",errorMsg)
+        }
+      }
+
+      const blob = await response.blob()
+
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+
+      a.href = url
+
+      a.download = 'reporte_proveedores_.pdf'
+      
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+
+      window.URL.revokeObjectURL(url)
+
+    }catch(error){
+      console.error("Error del servidor: ",error)
+    }finally{
+      setIsExporting(false)
+    }
+  }
 
   const columnas = [
     { key: "name", header: "Nombre" },
@@ -770,6 +891,8 @@ function Proveedores() {
             titulo="Proveedores"
             onRegister={handleOpenModal}
             onSearch={funcionBusqueda}
+            onExport={exportarRegistro}
+            isExporting={isExporting}
           />
           <div className="w-full  flex items-center justify-around border border-gray-400 border-b-white rounded-lg rounded-b-none  shadow-md bg-white p-2">
             <button
@@ -843,14 +966,25 @@ function Proveedores() {
             >
               RIF:
             </label>
-            <input
-              type="text"
-              name="rif"
-              value={state.form.rif}
-              onChange={handleInputChange}
-              placeholder="Ingrese el RIF"
-              className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-            />
+            <div className="flex items-center w-full gap-1">
+              <select
+                name="tipoRif"
+                onChange={(e) => onRifChange(e, "tipo")}
+                value={letra}
+                className=" bg-white rounded-md mb-2 shadow-xs p-3 border  border-gray-400 cursor-pointer font-semibold focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+              >
+                <option value="J">J</option>
+                <option value="V">V</option>
+              </select>
+              <input
+                type="text"
+                name="rif"
+                value={numero}
+                onChange={(e) => onRifChange(e, "numero")}
+                placeholder="Ingrese el RIF"
+                className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+              />
+            </div>
           </div>
           <div>
             <label
@@ -927,14 +1061,26 @@ function Proveedores() {
             >
               RIF:
             </label>
+            <div className="flex items-center w-full gap-1">
+              <select
+               name="tipoRif"
+               onChange={(e) => onRifChangeEdit(e, "tipo")}
+               value={letrasEdit}
+               className="bg-white rounded-md mb-2 shadow-xs p-3 border  border-gray-400 cursor-pointer font-semibold focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+              >
+               
+                <option value="J">J</option>
+                 <option value="V">V</option>
+              </select>
             <input
               type="text"
               name="rif"
-              onChange={handleInputChangeEdit}
-              value={proveedorEditar.rif}
+              value={numerosEdit}
+              onChange={(e) => onRifChangeEdit(e, "numero")}
               placeholder="Ingrese el RIF"
-              className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+              className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
+            </div>
           </div>
           <div>
             <label
@@ -985,7 +1131,7 @@ function Proveedores() {
       >
         <p className="text-lg">
           ¿Está seguro de eliminar al Proveedor{" "}
-          {nombreProveedor || "Desconocido"}?
+          <span className="font-bold">{nombreProveedor || "Desconocido"}?</span>
         </p>
       </Modal>
       <Modal
@@ -996,7 +1142,7 @@ function Proveedores() {
       >
         <p className="text-lg">
           ¿Está seguro de restaurar al Proveedor{" "}
-          {nombreProveedor || "Desconocido"}?
+          <span className="font-bold">{nombreProveedor || "Desconocido"}?</span>
         </p>
       </Modal>
     </>

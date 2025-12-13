@@ -10,7 +10,7 @@ export interface ServicioApi{
     invoice_number: string; payment_status: string;
     price: string; star_date: string;
   }
-  totalAmount: number;
+  totalAmount: number | number;
   vehicle: {license_plate: string;}
   id: number;
 }

@@ -4,7 +4,7 @@ import type { Vehiculo } from "../types/models";
 
 interface SelectVehiculosProps{
     endpointUrl: string;
-    onVehiculoChange: (vehiculoId: number | null) => void;
+    onVehiculoChange: (vehiculoId: number | null, placa: string | null) => void;
 }
 
 const SelectVehiculos: React.FC<SelectVehiculosProps> = ({
@@ -34,7 +34,9 @@ const SelectVehiculos: React.FC<SelectVehiculosProps> = ({
 
                 const data = await response.json()
                 const registrosApi = data.details;
-                setVehiculos(registrosApi)
+                const registrosActivos = registrosApi.filter((r: {is_active: boolean}) => r.is_active === true)
+                
+                setVehiculos(registrosActivos)
             }catch(error){
                 if(error instanceof Error){
                     setError(error.message)
@@ -53,13 +55,22 @@ const SelectVehiculos: React.FC<SelectVehiculosProps> = ({
 
         const selectId: number | null = value ? parseInt(value): null;
 
-        onVehiculoChange(selectId)
+        let selectPlaca: string | null = null
+
+        if(selectId !== null){
+            const vehiculoEncontrado = vehiculos.find((vehiculo) => vehiculo.id === selectId)
+
+            if(vehiculoEncontrado){
+                selectPlaca = vehiculoEncontrado.license_plate
+            }
+        }
+        onVehiculoChange(selectId, selectPlaca)
     }
 
     if(cargando){
         return(
             <select disabled>
-                <option>Cargando clientes...</option>
+                <option>Cargando Vehículos...</option>
             </select>
         )
     }
@@ -70,7 +81,7 @@ const SelectVehiculos: React.FC<SelectVehiculosProps> = ({
             <label htmlFor="vehiculoError" className="block text-sm font-medium text-gray-700 mb-1">Vehículo</label>
             <div>
             <select disabled name="vehiculoError" className="max-h-64 overflow-y-auto border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in">
-                <option value="Error">Error</option>
+                <option value="Error">No hay Vehículos</option>
             </select>
             </div>
             </>

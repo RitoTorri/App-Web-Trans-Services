@@ -22,7 +22,11 @@ export const mapServiciosToTabla = (registrosApi: ServicioApi[]): ItemPlana[] =>
         ? new Date(registro.services.invoice_date).toLocaleDateString('es-VE')
         : 'N/A'
 
-        const montoFinal = `${registro.totalAmount.toFixed(2)}`
+        const montoNumerico = Number(registro.totalAmount)
+
+        const montoFinal = !isNaN(montoNumerico)
+        ? montoNumerico.toFixed(2)
+        : "0.00"
 
         const estatoTraducido = traducirEstado(registro.services.payment_status as EnglishStatus)
 

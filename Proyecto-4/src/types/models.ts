@@ -8,6 +8,8 @@ export interface Empleado extends Item {
   apellido: string;
   cedula: string;
   rol: string;
+  salario_mensual: number;
+  fecha_entrada: Date;
   contacts: { contact_info: string; idContact?: number }[];
   nombre_completo: string;
 }
