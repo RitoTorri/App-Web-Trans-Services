@@ -476,9 +476,7 @@ function Empleados() {
 
       const errorData = await response.json();
 
-      const dataCi = errorData.details[0]
-
-      if(dataCi === "Error: ci is invalid."){
+      if(errorData.details[0] === "Error: ci is invalid."){
         setState((prev) => ({
           ...prev,
           error: true,
@@ -500,14 +498,22 @@ function Empleados() {
           setSuccessMessage(null);
         }, 3000);
       } else {
-
-        console.log(errorData); // Intentar leer el error del servidor
+        console.log(errorData.details);
+        if(errorData.details === "Employee already exists with this ci."){
         setState((prev) => ({
           ...prev,
           error: true,
-          errorMsg:
-            "Error al registrar, verifique los datos ingresados.",
+          errorMsg:"Error al registrar, número de cédula ya existente.",
         }));
+      }
+
+      if(errorData.details === "Contact info already exists."){
+        setState((prev) => ({
+          ...prev,
+          error: true,
+          errorMsg: "Error al registrar, informacion de contacto ya existente"
+        }))
+      }
       }
     } catch (error) {
       console.error("Error de red o conexión: ", error);
@@ -571,6 +577,24 @@ function Empleados() {
         errorMsg: "Por favor, complete los campos obligatorios.",
       }));
       return;
+    }
+
+    if(empleadoEditar.telefono && empleadoEditar.telefono.length !== 11){
+      setEmpleadoEditar((prev) => ({
+        ...prev,
+        error: true,
+        errorMsg: "Número de teléfono invalido"
+      }))
+      return
+    }
+
+    if(empleadoEditar.ci && empleadoEditar.ci.length !== 8){
+      setEmpleadoEditar((prev) => ({
+        ...prev,
+        error: true,
+        errorMsg: "Número de cédula invalido"
+      }))
+      return
     }
 
     if (Object.keys(datosAEnviar).length === 0) {
@@ -731,7 +755,7 @@ function Empleados() {
     { key: "rol", header: "Rol" },
     { key: "telefono", header: "Teléfono" },
     { key: "correo", header: "Correo" },
-    {key: "salary_monthly", header: "Salario Mensual"},
+    {key: "salary_monthly", header: "Salario Mensual($)"},
     {key: "date_of_entry_visual", header: "Fecha de Entrada"},
   ];
 
@@ -855,9 +879,9 @@ function Empleados() {
       }));
       return;
     }
-    console.log("Los datos:", datosEditar);
-
     try {
+
+      
       const apiEditarRegistro = `${apiEditar}${idEditar}`;
 
       const response = await fetch(apiEditarRegistro, {
@@ -871,7 +895,6 @@ function Empleados() {
 
       const data = await response.json();
 
-      console.log(data);
 
       if (response.ok && data.success) {
         console.log("Registro editado.");
@@ -883,12 +906,20 @@ function Empleados() {
           setSuccessMessage(null);
         }, 3000);
       } else {
-        console.error("Error en la edicion: ", data.message);
+        console.error("Error en la edicion: ", data.details);
+        if(data.details === "Contact info already exists."){
         setEmpleadoEditar((prev) => ({
           ...prev,
           error: true,
-          errorMsg: data.message || "Error al intentar editar",
+          errorMsg: "Error al editar, informacion de contacto ya existente",
         }));
+      }else if(data.details === "Employee with this ci already exists."){
+        setEmpleadoEditar((prev) => ({
+          ...prev,
+          error: true,
+          errorMsg: "Error al editar, número de cédula ya existente"
+        }))
+      }
       }
     } catch (error) {
       console.error("Error de conexion", error);
@@ -1172,7 +1203,7 @@ function Empleados() {
           </div>
           <div>
             <label htmlFor="" className="block text-sm font-medium text-gray-700 mb-1">
-              Salario Mensual:
+              Salario Mensual ($):
             </label>
             <input 
             type="number"
@@ -1315,11 +1346,12 @@ function Empleados() {
           </div>
           <div>
             <label htmlFor="">
-              Salario Mensual:
+              Salario Mensual ($):
             </label>
             <input 
             type="number"
             name="salary_monthly"
+            min={0}
             value={empleadoEditar.salary_monthly}
             onChange={handleInputChangeEdit}
             className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"

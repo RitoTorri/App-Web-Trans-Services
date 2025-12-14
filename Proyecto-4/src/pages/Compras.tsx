@@ -21,6 +21,8 @@ interface RegisterState {
 interface itemCompra {
   control_number: string;
   created_at: string;
+  description: string;
+  total_bs: string;
   id: number;
   provider: {
     name: string;
@@ -255,12 +257,12 @@ function Compras() {
     }
   };
 
-  const actualizarEstadoPago = async (id: number) => {
+  const actualizarEstadoPago = async (id: number, status: "pagado" | "cancelado") => {
     if (!accessToken) return;
     try {
       const urlActualizar = `http://localhost:3000/api/trans/services/provider-invoice/${id}/status`;
 
-      const cuerpo = { status: "pagado" };
+      const cuerpo = { status: status };
 
       const response = await fetch(urlActualizar, {
         method: "PATCH",
@@ -329,9 +331,8 @@ function Compras() {
 
   const columnas = [
     { key: "control_number", header: "Número de Control" },
-    { key: "description", header: "Descripción" },
     { key: "invoice_date", header: "Fecha Factura" },
-    { key: "total_amount", header: "Monto Neto" },
+    { key: "total_amount", header: "Monto Neto($)" },
     { key: "status", header: "Estado" },
     { key: "actions", header: "Acciones" },
   ];
@@ -364,14 +365,26 @@ function Compras() {
       <>
         <button
           onClick={() => {
+            if (window.confirm("¿Cancelar recepción del pago?")){
+              actualizarEstadoPago(id, "cancelado")
+            }
+          }}
+          className="btn bg-red-100 text-red-700 border-red-200 hover:bg-red-200 hover:border-red-300"
+        >
+          Cancelar Pago
+        </button>
+
+        <button
+          onClick={() => {
             if (window.confirm("¿Confirmar recepción del pago?")) {
-              actualizarEstadoPago(id);
+              actualizarEstadoPago(id,"pagado");
             }
           }}
           className="btn bg-green-600 text-white hover:bg-green-700 border-green-600"
         >
           Registrar Pago
         </button>
+
       </>
     );
   }, [registroSeleccionado, actualizarEstadoPago]);
@@ -386,7 +399,7 @@ function Compras() {
     }/${invoiceDateObj.getFullYear()}`;
 
     return (
-      <div className="space-y-6 p-2 text-sm text-gray-700">
+      <div className="space-y-4 p-2 text-sm text-gray-700">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
             <h3 className="font-bold text-gray-900 mb-2 border-b pb-1">
@@ -439,6 +452,13 @@ function Compras() {
           </div>
         </div>
 
+        <div className="bg-white border border-gray-200 rounded-lg p-3">
+          <h3 className="font-bold text-gray-900 mb-2">Descripción</h3>
+          <div>
+            <p className="font-medium">{registroSeleccionado.description}</p>
+          </div>
+        </div>
+
         <div className="border-t pt-4">
           <h3 className="font-bold text-lg text-gray-900 mb-3">
             Resumen Financiero
@@ -447,7 +467,7 @@ function Compras() {
           <div className="flex justify-between items-center mb-2">
             <span>Subtotal:</span>
             <span className="font-mono text-gray-600">
-              Bs {parseFloat(registroSeleccionado.subtotal).toFixed(2)}
+              $ {parseFloat(registroSeleccionado.subtotal).toFixed(2)}
             </span>
           </div>
 
@@ -461,7 +481,7 @@ function Compras() {
                 <div className="flex justify-between items-center mb-2">
                   <span>Impuesto (IVA):</span>
                   <span className="font-mono text-green-600">
-                    Bs +{ivaMonto.toFixed(2)}
+                    $ +{ivaMonto.toFixed(2)}
                   </span>
                 </div>
               );
@@ -469,11 +489,19 @@ function Compras() {
             return null;
           })()}
 
-          <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-300">
+          <div className="flex flex-col mt-4 pt-2 border-t gap-2 border-gray-300">
+            <div className="flex justify-between">
             <span className="font-bold text-lg">Monto Total a Pagar:</span>
             <span className="font-bold text-xl text-blue-600 font-mono">
-              Bs {parseFloat(registroSeleccionado.total_amount).toFixed(2)}
+              $ {parseFloat(registroSeleccionado.total_amount).toFixed(2)}
             </span>
+            </div>
+            {registroSeleccionado.total_bs && (
+              <div className="flex justify-between">
+              <span className="font-semibold text-base ">Conversión:</span>
+              <span className="font-semibold text-lg text-blue-400 font-mono">Bs {parseFloat(registroSeleccionado.total_bs).toFixed(2)}</span>
+            </div>
+            )}
           </div>
 
           <div className="mt-4 flex justify-end">
@@ -533,6 +561,9 @@ function Compras() {
                 </div>
                 <div className="p-4 bg-white border border-gray-400 rounded-lg shadow-sm">
                   Pendientes: {statusCount["pendiente"]}
+                </div>
+                <div className="p-4 bg-white border border-gray-400 rounded-lg shadow-sm">
+                  Cancelados: {statusCount["cancelado"]}
                 </div>
               </div>
               <div className="w-full flex items-center mb-4 gap-2 bg-white p-2 rounded shadow-sm border border-gray-400">
@@ -623,38 +654,6 @@ function Compras() {
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
           </div>
-          {/* <div>
-            <label
-              htmlFor="control_number"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Número de Control:
-            </label>
-            <input
-              type="text"
-              name="control_number"
-              value={state.form.control_number}
-              onChange={handleInputChange}
-              placeholder="Ingrese el Número de Control"
-              className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="invoice_number"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Número de Factura:
-            </label>
-            <input
-              type="text"
-              name="invoice_number"
-              value={state.form.invoice_number}
-              onChange={handleInputChange}
-              placeholder="Ingrese el Número de Factura"
-              className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-            />
-          </div> */}
           <div>
             <label
               htmlFor=""
@@ -677,7 +676,7 @@ function Compras() {
               htmlFor="subtotal"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              SubTotal:
+              SubTotal ($):
             </label>
             <input
               type="number"

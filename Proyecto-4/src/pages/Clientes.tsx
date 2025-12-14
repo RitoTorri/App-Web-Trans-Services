@@ -63,6 +63,7 @@ const initialStateClienteEditar: ClienteEditarState = {
 
 function Clientes() {
   const accessToken = localStorage.getItem("token");
+  const rolUser = localStorage.getItem("rol")
 
   const [state, setState] = useState<RegisterState>(initialState);
 
@@ -188,11 +189,6 @@ function Clientes() {
   const listarRegistros = async (terminoBusqueda = "") => {
     setIsLoading(true);
     if (!accessToken) {
-      setStateClientes((prevState) => ({
-        ...prevState,
-        error: true,
-        errorMsg: "Token no encontrado",
-      }));
       console.error("DEBUG: Token no encontrado.");
       return;
     }
@@ -263,9 +259,18 @@ function Clientes() {
       setState((prevState) => ({
         ...prevState,
         error: true,
-        errorMsg: "Por favor complete todos los campos.",
+        errorMsg: "Por favor, complete todos los campos.",
       }));
       return;
+    }
+
+    if(state.form.contact.length !== 11){
+      setState((prev) => ({
+        ...prev,
+        error: true,
+        errorMsg: "Número de teléfono invalido"
+      }))
+      return
     }
 
     try {
@@ -293,9 +298,7 @@ function Clientes() {
 
       const dataRif = errorData.details[0]
 
-      const dataContact = errorData.details
-
-      if(dataContact === "The contact already exists."){
+      if(errorData.details === "The contact already exists."){
         setState((prev) => ({
           ...prev,
           error:true,
@@ -309,6 +312,15 @@ function Clientes() {
           ...prev,
           error: true,
           errorMsg: "Número de RIF invalido, intente de nuevo"
+        }))
+        return
+      }
+
+      if(errorData.details === "The rif already exists."){
+        setState((prev) => ({
+          ...prev,
+          error: true,
+          errorMsg: "El RIF ya se encuntra registrado"
         }))
         return
       }
@@ -389,7 +401,7 @@ function Clientes() {
     }>
   ) => {
     if (!accessToken) {
-      setStateClientes((prevState) => ({
+      setClienteEditar((prevState) => ({
         ...prevState,
         error: true,
         errorMsg: "Token no encontrado",
@@ -397,6 +409,14 @@ function Clientes() {
       return;
     }
     console.log(datosEditar);
+    if(datosEditar.contact && datosEditar.contact.length !== 11){
+      setClienteEditar((prev) => ({
+        ...prev,
+        error: true,
+        errorMsg: "Número de teléfono invalido"
+      }))
+      return
+    }
 
     try {
       const apiEditarRegistro = `${apiEditar}${idEditar}`;
@@ -412,10 +432,9 @@ function Clientes() {
 
       const data = await response.json();
 
-      console.log(data);
+      const errorData = data.details[0]
 
       if (response.ok && data.success) {
-        console.log("Registro Editado");
         handleCloseModalEdit();
         setSuccessMessage("Cliente editado con éxito.");
         listarRegistros();
@@ -424,12 +443,26 @@ function Clientes() {
           setSuccessMessage(null);
         }, 3000);
       } else {
-        console.error("Error en la edicion: ", data.message);
+        console.log(data.details)
+        if(errorData === "Invalid rif. Code be must a RIF. Example: V-1234567-8"){
         setClienteEditar((prev) => ({
           ...prev,
           error: true,
-          errorMsg: "Error al intentar editar",
+          errorMsg: "Número de RIF invalido",
         }));
+        }else if(data.details === "Client already exists with this rif."){
+          setClienteEditar((prev) => ({
+            ...prev,
+            error: true,
+            errorMsg: "Error al editar, el RIF ya se encuntra registrado"
+          }))
+        }else if(data.details === "Client already exists with this contact."){
+          setClienteEditar((prev) => ({
+            ...prev,
+            error: true,
+            errorMsg: "Error al editar, el número de télefono ya se encunetra registrado"
+          }))
+        }
       }
     } catch (error) {
       console.error("Error de conexión: ", error);
@@ -491,13 +524,17 @@ function Clientes() {
     }
   }
 
-  const columnas = [
+  let columnas = [
     { key: "name", header: "Nombre" },
     { key: "rif", header: "Rif" },
     { key: "contact", header: "Teléfono" },
     { key: "address", header: "Dirección" },
-    { key: "actions", header: "Acciones" },
   ];
+
+  if(rolUser === "SuperUsuario"){
+    const columnaAcciones = { key: "actions", header: "Acciones" }
+    columnas.push(columnaAcciones)
+  }
 
   const userRegistro = (
     //Logica para el envío del formulario
@@ -782,7 +819,7 @@ function Clientes() {
             />
           </div>
           <div className="col-span-2 text-center m-0  min-h-6">
-            {clienteEditar.errorMsg && (
+            {clienteEditar.error && (
               <span className="text-red-600 text-sm m-0">
                 {clienteEditar.errorMsg}
               </span>

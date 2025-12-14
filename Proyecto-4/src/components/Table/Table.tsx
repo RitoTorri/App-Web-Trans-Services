@@ -2,7 +2,7 @@ import type { ConfiguracionColumna, TableProps } from "./Table.types";
 import type { Item } from "../../types/models";
 
 
-type PaymentStatus = "Cancelado" | "Pagado" | "Pendiente" | "pendiente" | "pagado" | "cancelled" | "draft" | "paid";
+type PaymentStatus = "Cancelado" | "Pagado" | "Pendiente" | "pendiente" | "pagado" | "cancelled" | "draft" | "paid" | "cancelado";
 
 /**
  * Devuelve las clases Tailwind para el color de fondo y texto del estado de pago.
@@ -26,6 +26,8 @@ export const getStatusClasses = (status: PaymentStatus): string => {
     case "Cancelado":
       return "bg-red-100 text-red-800 border-red-400";
     case "cancelled":
+      return "bg-red-100 text-red-800 border-red-400";
+    case "cancelado":
       return "bg-red-100 text-red-800 border-red-400";
     default:
       return "bg-gray-100 text-gray-800";
@@ -159,14 +161,15 @@ function Table({
                           {onDelete && (
                             <button
                               onClick={() => {
-                                const name = (item as any)["name"] || "";
+                                const name = (item as any)["name"]  ||"";
                                 const lastName =
                                   (item as any)["lastname"] || "";
+                                const username = (item as any)["username"] || "";
 
                                 const nombreCompleto =
                                   `${name} ${lastName}`.trim();
 
-                                onDelete(item.id, nombreCompleto);
+                                onDelete(item.id, nombreCompleto, username);
                               }}
                               className="btn bg-red-500 text-white hover:bg-red-600 font-medium transition-colors"
                               title="Eliminar"

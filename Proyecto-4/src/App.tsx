@@ -9,6 +9,7 @@ import Clientes from "./pages/Clientes";
 import Nominas from "./pages/Nominas";
 import Vehiculos from "./pages/Vehiculos";
 import Reportes from "./pages/Reportes";
+import Usuarios from "./pages/Usuarios";
 import ProtectedRoute from "./Routes/ProtectedRoute";
 
 function App() {
@@ -29,6 +30,10 @@ function App() {
           <Route path="/nominas" element={<Nominas />} />
           <Route path="/reportes" element={<Reportes/>}/>
         </Route>
+        <Route element={<ProtectedRoute requiredRol="SuperUsuario" />}>  
+          <Route path="/usuarios" element={<Usuarios />} />
+        </Route>
+        
       </Routes>
     </BrowserRouter>
   );
