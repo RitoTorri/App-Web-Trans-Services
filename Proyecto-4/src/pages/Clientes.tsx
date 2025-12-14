@@ -289,6 +289,30 @@ function Clientes() {
 
       console.log(dataToSend);
 
+      const errorData = await response.json();
+
+      const dataRif = errorData.details[0]
+
+      const dataContact = errorData.details
+
+      if(dataContact === "The contact already exists."){
+        setState((prev) => ({
+          ...prev,
+          error:true,
+          errorMsg: "El número de teléfono ya se encuntra registrado"
+        }))
+        return
+      }
+
+      if(dataRif === 'Invalid rif. Code be must a RIF. Example: V-1234567-8'){
+        setState((prev) => ({
+          ...prev,
+          error: true,
+          errorMsg: "Número de RIF invalido, intente de nuevo"
+        }))
+        return
+      }
+
       if (response.ok) {
         console.log("Registrado con exito");
         setState(initialState);
@@ -299,13 +323,12 @@ function Clientes() {
         setTimeout(() => {
           setSuccessMessage(null);
         }, 3000);
-      } else {
-        const errorData = await response.json();
+      } else{
         console.error(errorData);
         setState((prevState) => ({
           ...prevState,
           error: true,
-          errorMsg: "Ya existe un dato registrado.",
+          errorMsg: "Error al Intentar Registrar",
         }));
       }
     } catch (error) {

@@ -180,8 +180,6 @@ function Empleados() {
     "activos"
   );
 
-  
-
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const { name, value } = e.target;
   
@@ -269,6 +267,7 @@ function Empleados() {
   };
 
   const accessToken = localStorage.getItem("token");
+  const rolUsuario = localStorage.getItem("rol")
 
   const listarRegistros = async (terminoBusqueda = "") => {
     setIsLoadingActivos(true);
@@ -431,6 +430,15 @@ function Empleados() {
         salary_monthly
       } = state.form;
 
+      if(contact_phone_info.length !== 11){
+        setState((prev) => ({
+          ...prev,
+          error: true,
+          errorMsg: "Número de teléfono invalido"
+        }))
+        return
+      }
+
       const contacts = [];
 
       if (contact_email_info) {
@@ -466,6 +474,19 @@ function Empleados() {
         body: JSON.stringify(datoToSend),
       });
 
+      const errorData = await response.json();
+
+      const dataCi = errorData.details[0]
+
+      if(dataCi === "Error: ci is invalid."){
+        setState((prev) => ({
+          ...prev,
+          error: true,
+          errorMsg: "Número de cédula invalido"
+        }))
+        return
+      }
+
       if (response.ok) {
         console.log("Registrado con exito");
 
@@ -479,7 +500,7 @@ function Empleados() {
           setSuccessMessage(null);
         }, 3000);
       } else {
-        const errorData = await response.json();
+
         console.log(errorData); // Intentar leer el error del servidor
         setState((prev) => ({
           ...prev,
@@ -665,6 +686,7 @@ function Empleados() {
   };
 
   const handleOpenModalDelete = (id: number, nombre?: string) => {
+
     const nombreEstado = nombre ?? null;
 
     setNombreEmpleado(nombreEstado);
@@ -702,7 +724,7 @@ function Empleados() {
     listarRegistrosInactivos();
   }, []);
 
-  const columnas = [
+  let columnas = [
     { key: "ci", header: "Cédula" },
     { key: "name", header: "Nombre" },
     { key: "lastname", header: "Apellido" },
@@ -711,8 +733,13 @@ function Empleados() {
     { key: "correo", header: "Correo" },
     {key: "salary_monthly", header: "Salario Mensual"},
     {key: "date_of_entry_visual", header: "Fecha de Entrada"},
-    { key: "actions", header: "Acciones" },
   ];
+
+  if(rolUsuario === "SuperUsuario"){
+     const columnaAcciones = { key: "actions", header: "Acciones" }
+     columnas.push(columnaAcciones)
+  }
+
 
   const eliminarRegistro = async () => {
     if (!accessToken) {

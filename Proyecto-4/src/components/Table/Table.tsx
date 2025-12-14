@@ -49,6 +49,8 @@ function Table({
     );
   }
 
+
+
   return (
     <>
       <div className="w-full  overflow-x-auto shadow-lg  rounded-box border border-gray-400  rounded-t-none  bg-base-100 ">
@@ -82,7 +84,7 @@ function Table({
                     ) : col.key === "actions" ? (
                       onEdit || onDelete || onRestore || onView ? (
                         <div className="flex space-x-2 justify-center">
-                          {onRestore && (
+                          {onRestore &&  (
                             <button
                               className="btn  font-extrabold"
                               onClick={() => {

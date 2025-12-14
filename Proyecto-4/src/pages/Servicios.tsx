@@ -17,7 +17,6 @@ import { mapServiciosToTabla } from "../mappers/servicioMapper";
 import type { EnglishStatus } from "../mappers/servicioMapper";
 import { traducirEstado } from "../mappers/servicioMapper";
 
-
 interface ServiceApi {
   vehicle_id: number;
   client_id: number;
@@ -73,12 +72,11 @@ const initialServiciosState: ServiciosState = {
 const formatDateToInput = (date: Date): string => {
   // Si la fecha existe y es un objeto Date, la formatea.
   if (date instanceof Date && !isNaN(date.getTime())) {
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
 
-    return `${year}-${month}-${day}`
-
+    return `${year}-${month}-${day}`;
   }
   return "";
 };
@@ -103,8 +101,11 @@ function Servicios() {
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const [filtroEstado, setFiltroEstado] = useState<string | null>(null)
-  const [terminoBusqueda, setTerminoBusqueda] =useState<string>("")
+  const [filtroEstado, setFiltroEstado] = useState<string | null>(null);
+  const [terminoBusqueda, setTerminoBusqueda] = useState<string>("");
+
+  const [fechaDesde, setFechaDesde] = useState<string>("")
+  const [fechaHasta, setFechaHasta] = useState<string>("")
 
   const urlClientes = `${apiObtener}all`;
   const urlVehiculos = `${apiVehiculos}`;
@@ -145,7 +146,7 @@ function Servicios() {
 
   const handleVehiculoChange = (id: number | null, placa?: string) => {
     setSelectVehiculoId(id);
-    console.log(placa)
+    console.log(placa);
     if (placa) setCurrentVehiclePlate(placa);
     setState((prevState) => ({
       ...prevState,
@@ -287,7 +288,10 @@ function Servicios() {
       const data = await response.json();
 
       if (response.ok) {
-        console.log("Estado actualizado correctamente");
+        setSuccessMessage("Estado actualizado correctamente");
+        setTimeout(() => {
+          setSuccessMessage("");
+        }, 3000);
         listarRegistros();
         handleCloseModalDetalles();
       } else {
@@ -298,7 +302,10 @@ function Servicios() {
     }
   };
 
-  const listarRegistros = async (searchArg?: string, statusArg?: string | null) => {
+  const listarRegistros = async (
+    searchArg?: string,
+    statusArg?: string | null
+  ) => {
     if (!accessToken) {
       setStateServicio((prev) => ({
         ...prev,
@@ -309,30 +316,34 @@ function Servicios() {
       return;
     }
 
-    const searchFinal = searchArg !== undefined ? searchArg: terminoBusqueda
+    const searchFinal = searchArg !== undefined ? searchArg : terminoBusqueda;
 
-    const statusFinal = statusArg !== undefined ? statusArg : filtroEstado
+    const statusFinal = statusArg !== undefined ? statusArg : filtroEstado;
 
-    setTerminoBusqueda(searchFinal)
-    setFiltroEstado(statusFinal)
+    setTerminoBusqueda(searchFinal);
+    setFiltroEstado(statusFinal);
 
-   let filterContent: any = {};
+    let filterContent: any = {};
 
+    if(fechaDesde && fechaHasta){
+      filterContent = {
+        dateStart: fechaDesde,
+        dateEnd: fechaHasta
+      }
+    }else{
+      if(searchFinal && searchFinal.trim() !== ""){
+        filterContent = searchFinal.trim()
+      }
 
-    if (searchFinal && searchFinal.trim() !== "") {
-
-      filterContent = searchFinal.trim(); 
-    }
-
-    if (statusFinal) {
-      filterContent = statusFinal; 
+      if(statusFinal){
+        filterContent = statusFinal
+      }
     }
 
     const dataToSend = {
       filterSearch: filterContent,
     };
 
-    console.log("Filtro: ", dataToSend);
     try {
       const response = await fetch(apiObtenerServicios, {
         method: "POST",
@@ -403,7 +414,6 @@ function Servicios() {
     { key: "estado_pago", header: "Estado" },
     { key: "actions", header: "Acciones" },
   ];
-
 
   const modalActions = (
     <button
@@ -491,6 +501,11 @@ function Servicios() {
               <span className="font-semibold">Placa:</span>{" "}
               {registroSeleccionado.vehicle.license_plate}
             </p>
+            <p>
+              <span className="font-semibold">Nombre del Conductor:</span>{" "}
+              {registroSeleccionado.vehicle.name_driver}{" "}
+              {registroSeleccionado.vehicle.lastname_driver}
+            </p>
           </div>
         </div>
 
@@ -525,26 +540,6 @@ function Servicios() {
         </div>
 
         <div className="border-t">
-          
-
-          
-
-          {/* <div className="flex justify-between items-center mb-2 text-red-600">
-            <span>
-              Retención ISRL ({registroSeleccionado.retentions.rate_retention}
-              %):
-              <span className="text-xs text-gray-500 ml-1">
-                ({registroSeleccionado.retentions.code_retention})
-              </span>
-            </span>
-            <span className="font-mono">
-              Bs -
-              {parseFloat(
-                registroSeleccionado.retentions.total_retention
-              ).toFixed(2)}
-            </span>
-          </div> */}
-
           <div className="flex justify-between items-center mt-4 pt-2  border-gray-300">
             <span className="font-bold text-lg">Monto Total a Pagar:</span>
             <span className="font-bold text-xl text-blue-600 font-mono">
@@ -642,30 +637,89 @@ function Servicios() {
           ) : (
             <>
               <div className="flex flex-row mb-4 w-full items-start gap-5">
-                <button onClick={() => listarRegistros(undefined, null)} className={`cursor-pointer p-4 bg-white border border-gray-400 rounded-lg shadow-sm ${filtroEstado === null
-                  ? "bg-blue-50 border-blue-500 ring-1 ring-blue-500 text-blue-700 font-bold"
-                  : "bg-white border-gray-400 hover:bg-gray-50 text-gray-700"
-                }`}>
-                Total: {contadorServicios.total}
+                <button
+                  onClick={() => listarRegistros(undefined, null)}
+                  className={`cursor-pointer p-4 bg-white border border-gray-400 rounded-lg shadow-sm ${
+                    filtroEstado === null
+                      ? "bg-blue-50 border-blue-500 ring-1 ring-blue-500 text-blue-700 font-bold"
+                      : "bg-white border-gray-400 hover:bg-gray-50 text-gray-700"
+                  }`}
+                >
+                  Total: {contadorServicios.total}
                 </button>
-                <button onClick={() => listarRegistros(undefined, "pagado")} className={`cursor-pointer p-4 bg-white border border-gray-400 rounded-lg shadow-sm ${filtroEstado === "pagado"
-                  ? "bg-blue-50 border-green-500 ring-1 ring-green-500 text-green-700 font-bold"
-                  : "bg-white border-gray-400 hover:bg-gray-50 text-gray-700"
-                }`}>
-                   Pagados: {contadorServicios.paid}
+                <button
+                  onClick={() => listarRegistros(undefined, "pagado")}
+                  className={`cursor-pointer p-4 bg-white border border-gray-400 rounded-lg shadow-sm ${
+                    filtroEstado === "pagado"
+                      ? "bg-blue-50 border-green-500 ring-1 ring-green-500 text-green-700 font-bold"
+                      : "bg-white border-gray-400 hover:bg-gray-50 text-gray-700"
+                  }`}
+                >
+                  Pagados: {contadorServicios.paid}
                 </button>
-                <button onClick={() => listarRegistros(undefined, "pendiente")} className={`cursor-pointer p-4 bg-white border border-gray-400 rounded-lg shadow-sm ${filtroEstado === "pendiente"
-                  ? "bg-blue-50 border-yellow-500 ring-1 ring-yellow-500 text-yellow-700 font-bold"
-                  : "bg-white border-gray-400 hover:bg-gray-50 text-gray-700"
-                }`}>
+                <button
+                  onClick={() => listarRegistros(undefined, "pendiente")}
+                  className={`cursor-pointer p-4 bg-white border border-gray-400 rounded-lg shadow-sm ${
+                    filtroEstado === "pendiente"
+                      ? "bg-blue-50 border-yellow-500 ring-1 ring-yellow-500 text-yellow-700 font-bold"
+                      : "bg-white border-gray-400 hover:bg-gray-50 text-gray-700"
+                  }`}
+                >
                   Pendientes: {contadorServicios.pending}
                 </button>
-                <button onClick={() => listarRegistros(undefined, "cancelado")} className={`cursor-pointer p-4 bg-white border border-gray-400 rounded-lg shadow-sm ${filtroEstado === "cancelado"
-                  ? "bg-blue-50 border-red-500 ring-1 ring-red-500 text-red-700 font-bold"
-                  : "bg-white border-gray-400 hover:bg-gray-50 text-gray-700"
-                }`}>
+                <button
+                  onClick={() => listarRegistros(undefined, "cancelado")}
+                  className={`cursor-pointer p-4 bg-white border border-gray-400 rounded-lg shadow-sm ${
+                    filtroEstado === "cancelado"
+                      ? "bg-blue-50 border-red-500 ring-1 ring-red-500 text-red-700 font-bold"
+                      : "bg-white border-gray-400 hover:bg-gray-50 text-gray-700"
+                  }`}
+                >
                   Cancelados: {contadorServicios.canceled}
                 </button>
+              </div>
+              <div className="w-full flex items-center mb-4 gap-2 bg-white p-2 rounded-sm border shadow-sm border-gray-400">
+                <span>De: </span>
+                <div>
+                  <input
+                    type="date"
+                    value={fechaDesde}
+                    onChange={(e) => setFechaDesde(e.target.value)}
+                    className="border border-gray-400 rounded-md shadow-inner  p-1.5 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+                  />
+                </div>
+                <span>Hasta:</span>
+                <div>
+                  <input
+                    type="date"
+                    value={fechaHasta}
+                    onChange={(e) => setFechaHasta(e.target.value)}
+                    className="border border-gray-400 rounded-md shadow-inner  p-1.5 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+                  />
+                </div>
+                <button className="btn bg-blue-500 pt-2 pb-2 text-white rounded hover:bg-blue-600" onClick={() => listarRegistros()}>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    fill="currentColor"
+                    className="bi bi-search"
+                    viewBox="0 0 16 16"
+                  >
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+                  </svg>
+                </button>
+                {(fechaDesde || fechaHasta) && (
+      <button 
+        onClick={() => {
+            setFechaDesde("");
+            setFechaHasta("");
+        }}
+        className="btn text-xs bg-red-400 text-white"
+      >
+        Limpiar Fechas
+      </button>
+  )}
               </div>
               <Table
                 data={datosParaTabla}
@@ -684,19 +738,17 @@ function Servicios() {
         acciones={modalActions}
       >
         <div className="grid grid-cols-1 gap-4">
-         
           <div className="border border-gray-400 p-4 rounded-md ">
             <h4 className="font-semibold text-gray-700 mb-3 border-b pb-2">
               Datos del Servicio
             </h4>
             <form id="FormularioServicio" className="grid grid-cols-2 gap-3">
-             
               <div>
                 <SelectClientes
                   endpointUrl={urlClientes}
                   onClienteChange={(id, name) =>
                     handleClienteChange(id, name || undefined)
-                  } 
+                  }
                 />
               </div>
               <div>
@@ -704,7 +756,7 @@ function Servicios() {
                   endpointUrl={urlVehiculos}
                   onVehiculoChange={(id, placa) =>
                     handleVehiculoChange(id, placa || undefined)
-                  } 
+                  }
                 />
               </div>
 
@@ -749,7 +801,7 @@ function Servicios() {
                 </div>
                 <button
                   onClick={handleAddToList}
-                  type="button" 
+                  type="button"
                   className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded h-10 mb-[1px]"
                 >
                   + Agregar a Lista

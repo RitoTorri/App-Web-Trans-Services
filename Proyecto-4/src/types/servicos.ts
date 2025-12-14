@@ -11,7 +11,11 @@ export interface ServicioApi{
     price: string; star_date: string;
   }
   totalAmount: number | number;
-  vehicle: {license_plate: string;}
+  vehicle: {
+  license_plate: string; 
+  lastname_driver: string;
+  name_driver: string;
+}
   id: number;
 }
 
@@ -20,6 +24,8 @@ export interface ItemPlana{
   factura: string;
   cliente: string;
   placa: string;
+  nombre_conductor: string;
+  apellido_conductor: string;
   fecha_factura: string;
   monto_final: string;
   estado_pago: string;

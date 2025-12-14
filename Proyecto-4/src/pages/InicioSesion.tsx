@@ -73,7 +73,7 @@ function InicioSesion() {
       if (response.ok) {
         localStorage.setItem("token", data.details.token);
         localStorage.setItem("username",data.details.user.username)
-        
+        localStorage.setItem("rol",data.details.user.rol)
         navigate("/paginainicio", { replace: true });
       } else {
         setState((prevState) => ({
