@@ -5,3 +5,5 @@ export const apiObtener = "http://localhost:3000/api/trans/services/payrolls/sea
 export const apiModificarStatus = "http://localhost:3000/api/trans/services/payrolls/";
 
 export const apiEditar = "http://localhost:3000/api/trans/services/payrolls/";
+
+export const apiEliminar = "http://localhost:3000/api/trans/services/payrolls/";

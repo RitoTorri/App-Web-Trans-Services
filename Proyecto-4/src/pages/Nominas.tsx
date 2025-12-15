@@ -6,7 +6,6 @@ import Modal from "../components/Modal/Modal";
 import {
     apiRegistrar,
     apiObtener,
-    apiEditar,
     apiModificarStatus,
 } from "../services/apiNominas";
 import { apiObtener as apiObtenerEmpleados } from "../services/apiEmpleados";
@@ -24,11 +23,6 @@ interface RegisterFormState {
     employee_id: number;
     period_start: Date;
     period_end: Date;
-    daily_salary: number;
-    total_days_paid: number;
-    ivss: number;
-    pie: number;
-    faov: number;
 }
 
 interface RegisterState {
@@ -42,18 +36,14 @@ const initialState: RegisterState = {
         employee_id: 0,
         period_start: new Date(),
         period_end: new Date(),
-        daily_salary: 0,
-        total_days_paid: 0,
-        ivss: 0,
-        pie: 0,
-        faov: 0,
+
     },
     error: false,
     errorMsg: "",
 };
 
 interface NominasState {
-    registros: any[]; // Usamos any para manejar la estructura compleja de la API
+    registros: any[];
     error: boolean;
     errorMsg: string;
 }
@@ -64,35 +54,7 @@ const initialStateNominas: NominasState = {
     errorMsg: "",
 };
 
-interface NominaEditarState {
-    id: number | null;
-    status: string;
-    employee_id: number;
-    period_start: Date;
-    period_end: Date;
-    daily_salary: number;
-    total_days_paid: number;
-    ivss: number;
-    pie: number;
-    faov: number;
-    error: boolean;
-    errorMsg: string;
-}
 
-const initialStateNominaEditar: NominaEditarState = {
-    id: null,
-    status: "draft",
-    employee_id: 0,
-    period_start: new Date(),
-    period_end: new Date(),
-    daily_salary: 0,
-    total_days_paid: 0,
-    ivss: 0,
-    pie: 0,
-    faov: 0,
-    error: false,
-    errorMsg: "",
-};
 
 function Nominas() {
 
@@ -100,16 +62,17 @@ function Nominas() {
     const [state, setState] = useState<RegisterState>(initialState);
     const [stateNominas, setStateNominas] = useState<NominasState>(initialStateNominas);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
-    const [nominaEditar, setNominaEditar] = useState<NominaEditarState>(initialStateNominaEditar);
-    const [camposModificados, setCamposModificados] = useState<Partial<NominaEditarState>>({});
     const [listaEmpleados, setListaEmpleados] = useState<Empleado[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     // Modals
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isModalOpenEdit, setIsModalOpenEdit] = useState(false);
     const [isModalOpenDetalles, setIsModalOpenDetalles] = useState(false);
     const [registroSeleccionado, setRegistroSeleccionado] = useState<any | null>(null);
+
+    // Date Filters
+    const [fechaDesde, setFechaDesde] = useState<string>("");
+    const [fechaHasta, setFechaHasta] = useState<string>("");
 
     const cargarEmpleados = async () => {
         if (!accessToken) return;
@@ -137,7 +100,7 @@ function Nominas() {
         const { name, value } = e.target;
         let processedValue: any = value;
 
-        if (['employee_id', 'daily_salary', 'total_days_paid', 'ivss', 'pie', 'faov'].includes(name)) {
+        if (['employee_id'].includes(name)) {
             processedValue = Number(value) || 0;
         } else if (['period_start', 'period_end'].includes(name)) {
             processedValue = new Date(value);
@@ -154,28 +117,6 @@ function Nominas() {
         }));
     };
 
-    const handleInputChangeEdit = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        let processedValue: any = value;
-
-        if (['employee_id', 'daily_salary', 'total_days_paid', 'ivss', 'pie', 'faov'].includes(name)) {
-            processedValue = Number(value) || 0;
-        } else if (['period_start', 'period_end'].includes(name)) {
-            processedValue = new Date(value);
-        }
-
-        setNominaEditar((prevState) => ({
-            ...prevState,
-            [name]: processedValue,
-            error: false,
-            errorMsg: "",
-        }));
-
-        setCamposModificados((prevFields) => ({
-            ...prevFields,
-            [name]: processedValue,
-        }));
-    };
 
     const listarRegistros = async (terminoBusqueda = "") => {
         setIsLoading(true);
@@ -188,16 +129,31 @@ function Nominas() {
             return;
         }
 
-        // Si terminoBusqueda es un estado válido, filtramos por estado.
-        // Si es una fecha, podríamos filtrar por fecha (no implementado en este ejemplo simple)
-        // Si es vacío, traemos todo.
         let filterSearchPayload = {};
+
         if (terminoBusqueda) {
-            if (['draft', 'paid', 'cancelled'].includes(terminoBusqueda.toLowerCase())) {
-                filterSearchPayload = { status: terminoBusqueda.toLowerCase() };
+            const termino = terminoBusqueda.toLowerCase().trim();
+
+            // 1. Detectar si es una fecha (Formato YYYY-MM-DD)
+            // Ejemplo: 2025-12-13
+            const esFecha = /^\d{4}-\d{2}-\d{2}$/.test(termino);
+
+            if (esFecha) {
+                // enviamos start y end iguales para buscar ese día exacto
+                filterSearchPayload = {
+                    dateStart: termino,
+                    dateEnd: termino
+                };
+            } else if (['borrador', 'draft'].includes(termino)) {
+                filterSearchPayload = { status: 'draft' };
+            }
+            else if (['pagada', 'pagado', 'paid'].includes(termino)) {
+                filterSearchPayload = { status: 'paid' };
+            }
+            else if (['cancelada', 'cancelado', 'cancelled'].includes(termino)) {
+                filterSearchPayload = { status: 'cancelled' };
             } else {
-                // Si no es un estado, asumimos que es búsqueda general (aunque la API pide estructura específica)
-                // Por ahora lo dejamos vacío o implementamos lógica de fecha si fuera necesario
+                //ojala dormir toda la semana 
             }
         }
 
@@ -254,12 +210,7 @@ function Nominas() {
         if (
             !state.form.employee_id ||
             !state.form.period_start ||
-            !state.form.period_end ||
-            !state.form.daily_salary ||
-            !state.form.total_days_paid ||
-            state.form.ivss === undefined ||
-            state.form.pie === undefined ||
-            state.form.faov === undefined
+            !state.form.period_end
         ) {
             setState((prevState) => ({
                 ...prevState,
@@ -274,11 +225,6 @@ function Nominas() {
                 employee_id: String(state.form.employee_id),
                 period_start: formatDate(state.form.period_start),
                 period_end: formatDate(state.form.period_end),
-                daily_salary: String(state.form.daily_salary),
-                total_days_paid: String(state.form.total_days_paid),
-                ivss: String(state.form.ivss),
-                pie: String(state.form.pie),
-                faov: String(state.form.faov),
             };
 
             const response = await fetch(apiRegistrar, {
@@ -319,97 +265,6 @@ function Nominas() {
         }
     };
 
-    //Editar Nomina
-    const manejadorSubmitEditar = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        setNominaEditar((prevState) => ({
-            ...prevState,
-            error: false,
-            errorMsg: "",
-        }));
-
-        if (Object.keys(camposModificados).length === 0) {
-            setNominaEditar((prevState) => ({
-                ...prevState,
-                error: true,
-                errorMsg: "No se han detectado cambios.",
-            }));
-            return;
-        }
-
-        if (nominaEditar.status !== "draft") {
-            setNominaEditar((prevState) => ({
-                ...prevState,
-                error: true,
-                errorMsg: "Solo se puede editar una nomina en estado draft."
-            }))
-            return;
-        }
-
-
-        if (nominaEditar.id !== null) {
-            if (!accessToken) {
-                setStateNominas((prevState) => ({
-                    ...prevState,
-                    error: true,
-                    errorMsg: "Token no encontrado",
-                }));
-                return;
-            }
-
-            // Enviar el objeto completo aunque no haya cambios, según requerimiento
-            const dataToSend = {
-                employee_id: String(nominaEditar.employee_id),
-                period_start: formatDate(nominaEditar.period_start),
-                period_end: formatDate(nominaEditar.period_end),
-                daily_salary: String(nominaEditar.daily_salary),
-                total_days_paid: String(nominaEditar.total_days_paid),
-                ivss: String(nominaEditar.ivss),
-                pie: String(nominaEditar.pie),
-                faov: String(nominaEditar.faov),
-            };
-
-            try {
-                const apiEditarRegistro = `${apiEditar}${nominaEditar.id}`;
-                const response = await fetch(apiEditarRegistro, {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${accessToken}`,
-                    },
-                    body: JSON.stringify(dataToSend),
-                });
-
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    console.log("Registro Editado")
-                    handleCloseModalEdit();
-                    setSuccessMessage("Nomina editada con éxito.");
-                    listarRegistros();
-                    setCamposModificados({});
-                    setTimeout(() => {
-                        setSuccessMessage(null)
-                    }, 3000);
-                } else {
-                    console.error("Error en la edicion: ", data.message)
-                    setNominaEditar((prev) => ({
-                        ...prev,
-                        error: true,
-                        errorMsg: data.message || "Error al editar la nómina.",
-                    }));
-                }
-            } catch (error) {
-                console.error("Error de conexión: ", error)
-                setNominaEditar((prev) => ({
-                    ...prev,
-                    error: true,
-                    errorMsg: "Error al conectar al servidor.",
-                }));
-            }
-        }
-    };
 
     const editarStatusRegistro = async (id: number, nuevoStatus: string) => {
         if (!accessToken || !["draft", "cancelled", "paid"].includes(nuevoStatus)) {
@@ -441,20 +296,26 @@ function Nominas() {
 
     // Mappers y Datos para Tabla
     const datosParaTabla = useMemo(() => {
+
+        const mapStatus: Record<string, string> = {
+            draft: "Borrador",
+            paid: "Pagada",
+            cancelled: "Cancelada"
+        };
+
         return stateNominas.registros.map((item) => ({
             id: item.id,
             id_empleado: item.employee?.id,
             empleado: `${item.employee?.name || ''} ${item.employee?.lastname || ''}`.trim(),
             periodo: `${formatDate(item.Payment_period?.from)} - ${formatDate(item.Payment_period?.to)}`,
-            monto: `Bs ${item.description?.net_salary}`,
-            status: item.status,
+            monto: `${item.description?.net_salary} $`,
+            status: mapStatus[item.status] || item.status,
             // Guardamos el objeto original para usarlo al editar/ver
             original: item
         }));
     }, [stateNominas.registros]);
 
     const columnas = [
-        { key: "id", header: "Nro Empleado" },
         { key: "empleado", header: "Empleado" },
         { key: "periodo", header: "Periodo" },
         { key: "monto", header: "Monto Neto" },
@@ -491,28 +352,7 @@ function Nominas() {
         setIsModalOpen(false);
     };
 
-    const handleOpenModalEdit = (itemTabla: any) => {
-        const nomina = itemTabla.original;
-        setNominaEditar({
-            id: nomina.id,
-            status: nomina.status || "draft",
-            employee_id: Number(nomina.employee?.id),
-            period_start: nomina.Payment_period?.from ? new Date(nomina.Payment_period.from) : new Date(),
-            period_end: nomina.Payment_period?.to ? new Date(nomina.Payment_period.to) : new Date(),
-            daily_salary: Number(nomina.details?.salary_daily || 0),
-            total_days_paid: Number(nomina.details?.total_days_paid || 0),
-            ivss: Number(nomina.description?.deductions?.ivss || 0),
-            pie: Number(nomina.description?.deductions?.pie || 0),
-            faov: Number(nomina.description?.deductions?.faov || 0),
-            error: false,
-            errorMsg: "",
-        });
-        setIsModalOpenEdit(true);
-    };
 
-    const handleCloseModalEdit = () => {
-        setIsModalOpenEdit(false);
-    };
 
     const handleView = (itemTabla: any) => {
         setRegistroSeleccionado(itemTabla.original);
@@ -532,11 +372,6 @@ function Nominas() {
         </button>
     );
 
-    const userEdit = (
-        <button form="FormularioEditarNomina" className="btn bg-blue-500 hover:bg-blue-600 text-white">
-            Guardar Cambios
-        </button>
-    );
 
     const renderDetallesBody = useMemo(() => {
         if (!registroSeleccionado) return null;
@@ -565,10 +400,10 @@ function Nominas() {
                 <div className="bg-white border border-gray-200 rounded-lg p-3">
                     <h3 className="font-bold text-gray-900 mb-2">Detalles del Cálculo</h3>
                     <div className="grid grid-cols-2 gap-2">
-                        <p>Salario Diario: <span className="font-mono">Bs {registroSeleccionado.details?.salary_daily}</span></p>
+                        <p>Salario Diario: <span className="font-mono">USD $ {registroSeleccionado.details?.salary_daily}</span></p>
                         <p>Días Pagados: <span className="font-mono">{registroSeleccionado.details?.total_days_paid}</span></p>
-                        <p>Salario Mensual: <span className="font-mono">Bs {registroSeleccionado.description?.monthly_salary}</span></p>
-                        <p>Salario Quincenal: <span className="font-mono">Bs {registroSeleccionado.description?.salary_biweekly}</span></p>
+                        <p>Salario Mensual: <span className="font-mono">USD $ {registroSeleccionado.description?.monthly_salary}</span></p>
+                        <p>Salario Quincenal: <span className="font-mono">USD $ {registroSeleccionado.description?.salary_biweekly}</span></p>
                     </div>
                 </div>
 
@@ -577,22 +412,33 @@ function Nominas() {
                         Deducciones y Neto
                     </h3>
                     <div className="grid grid-cols-3 gap-2 text-sm text-red-600 mb-3">
-                        <p>IVSS: Bs {registroSeleccionado.description?.deductions?.ivss}</p>
-                        <p>PIE: Bs {registroSeleccionado.description?.deductions?.pie}</p>
-                        <p>FAOV: Bs {registroSeleccionado.description?.deductions?.faov}</p>
+                        <p>SSO: {registroSeleccionado.description?.deductions?.sso}  Bs</p>
+                        <p>PIE: {registroSeleccionado.description?.deductions?.pie}  Bs</p>
+                        <p>FAOV: {registroSeleccionado.description?.deductions?.faov}  Bs</p>
                     </div>
 
                     <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-300">
                         <span className="font-bold text-lg">Total Deducciones:</span>
                         <span className="font-bold text-lg text-red-600 font-mono">
-                            Bs {registroSeleccionado.description?.totalDeductions}
+                                {registroSeleccionado.description?.totalDeductions} Bs
                         </span>
                     </div>
 
                     <div className="flex justify-between items-center mt-2">
                         <span className="font-bold text-xl">Sueldo Neto:</span>
                         <span className="font-bold text-2xl text-blue-600 font-mono">
-                            Bs {registroSeleccionado.description?.net_salary}
+                            <span className="font-bold text-2xl text-blue-600 font-mono">
+                                {registroSeleccionado.description?.net_salary} $ 
+                            </span>
+                        </span>
+                    </div>
+
+                    <div className="flex justify-between items-center mt-2">
+                        <span className="font-bold text-xl">Sueldo Neto bs:</span>
+                        <span className="font-bold text-2xl text-blue-600 font-mono">
+                            <span className="font-bold text-2xl text-blue-600 font-mono">
+                                    {registroSeleccionado.description?.net_salary_bs} BS
+                            </span>
                         </span>
                     </div>
 
@@ -601,7 +447,11 @@ function Nominas() {
                     ${registroSeleccionado.status === "paid" ? "bg-green-100 text-green-700" :
                                 registroSeleccionado.status === "draft" ? "bg-yellow-100 text-yellow-700" :
                                     "bg-red-100 text-red-700"}`}>
-                            Estado: {registroSeleccionado.status}
+                            Estado: {
+                                registroSeleccionado.status === 'draft' ? 'Borrador' :
+                                    registroSeleccionado.status === 'paid' ? 'Pagada' :
+                                        registroSeleccionado.status === 'cancelled' ? 'Cancelada' :
+                                            registroSeleccionado.status}
                         </span>
                     </div>
                 </div>
@@ -677,10 +527,54 @@ function Nominas() {
                                     <span>Canceladas: {contadorNominas.cancelled}</span>
                                 </div>
                             </div>
+
+                            <div className="w-full flex items-center mb-4 gap-2 bg-white p-2 rounded-sm border shadow-sm border-gray-400">
+                                <span>De: </span>
+                                <div>
+                                    <input
+                                        type="date"
+                                        value={fechaDesde}
+                                        onChange={(e) => setFechaDesde(e.target.value)}
+                                        className="border border-gray-400 rounded-md shadow-inner  p-1.5 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+                                    />
+                                </div>
+                                <span>Hasta:</span>
+                                <div>
+                                    <input
+                                        type="date"
+                                        value={fechaHasta}
+                                        onChange={(e) => setFechaHasta(e.target.value)}
+                                        className="border border-gray-400 rounded-md shadow-inner  p-1.5 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+                                    />
+                                </div>
+                                <button className="btn bg-blue-500 pt-2 pb-2 text-white rounded hover:bg-blue-600" onClick={() => listarRegistros()}>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        className="bi bi-search"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+                                    </svg>
+                                </button>
+                                {(fechaDesde || fechaHasta) && (
+                                    <button
+                                        onClick={() => {
+                                            setFechaDesde("");
+                                            setFechaHasta("");
+                                            listarRegistros(""); // Reset search
+                                        }}
+                                        className="btn text-xs bg-red-400 text-white"
+                                    >
+                                        Limpiar Fechas
+                                    </button>
+                                )}
+                            </div>
                             <Table
                                 data={datosParaTabla}
                                 columnas={columnas}
-                                onEdit={handleOpenModalEdit}
                                 onView={handleView}
                             />
                         </>
@@ -692,7 +586,7 @@ function Nominas() {
             <Modal isOpen={isModalOpen} onClose={handleCloseModal} titulo="Registrar Nueva Nómina" acciones={userRegistro}>
                 <form id="FormularioNomina" onSubmit={manejadorSubmit} className="grid grid-cols-2 gap-3">
                     <div>
-                        <label htmlFor="employee_id" className="block text-sm font-medium text-gray-700 mb-1">Employee:</label>
+                        <label htmlFor="employee_id" className="block text-sm font-medium text-gray-700 mb-1">Empleado:</label>
                         <select
                             name="employee_id"
                             onChange={handleInputChange}
@@ -708,7 +602,7 @@ function Nominas() {
                         </select>
                     </div>
                     <div>
-                        <label htmlFor="period_start" className="block text-sm font-medium text-gray-700 mb-1">Period Start:</label>
+                        <label htmlFor="period_start" className="block text-sm font-medium text-gray-700 mb-1">Periodo de Inicio:</label>
                         <input
                             type="date"
                             name="period_start"
@@ -718,7 +612,7 @@ function Nominas() {
                         />
                     </div>
                     <div>
-                        <label htmlFor="period_end" className="block text-sm font-medium text-gray-700 mb-1">Period End:</label>
+                        <label htmlFor="period_end" className="block text-sm font-medium text-gray-700 mb-1">Periodo Final:</label>
                         <input
                             type="date"
                             name="period_end"
@@ -727,184 +621,32 @@ function Nominas() {
                             className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
                         />
                     </div>
+
                     <div>
-                        <label htmlFor="daily_salary" className="block text-sm font-medium text-gray-700 mb-1">Daily Salary:</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Aclaratoria:</label>
                         <input
-                            type="number"
-                            step="0.01"
-                            name="daily_salary"
-                            onChange={handleInputChange}
-                            value={state.form.daily_salary || ''}
-                            placeholder="Ingrese el salario diario"
+                            type="text"
+                            placeholder="aplican los impuestos: faov,pie,sso"
                             className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-                        />
+                            readOnly />
                     </div>
-                    <div>
-                        <label htmlFor="total_days_paid" className="block text-sm font-medium text-gray-700 mb-1">Total Days Paid:</label>
-                        <input
-                            type="number"
-                            name="total_days_paid"
-                            onChange={handleInputChange}
-                            value={state.form.total_days_paid || ''}
-                            placeholder="Ingrese los días pagados"
-                            className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="ivss" className="block text-sm font-medium text-gray-700 mb-1">IVSS:</label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            name="ivss"
-                            onChange={handleInputChange}
-                            value={state.form.ivss || ''}
-                            placeholder="Ingrese la deducción IVSS"
-                            className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="pie" className="block text-sm font-medium text-gray-700 mb-1">PIE:</label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            name="pie"
-                            onChange={handleInputChange}
-                            value={state.form.pie || ''}
-                            placeholder="Ingrese la deducción PIE"
-                            className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="faov" className="block text-sm font-medium text-gray-700 mb-1">FAOV:</label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            name="faov"
-                            onChange={handleInputChange}
-                            value={state.form.faov || ''}
-                            placeholder="Ingrese la deducción FAOV"
-                            className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-                        />
-                    </div>
+
                 </form>
                 <div className="min-h-6 text-center">
                     {state.error && <span className="text-center text-red-500 text-sm m-0">{state.errorMsg}</span>}
                 </div>
             </Modal>
 
-            {/* Modal Edición */}
-            <Modal isOpen={isModalOpenEdit} onClose={handleCloseModalEdit} titulo="Editar Nómina" acciones={userEdit}>
-                <form id="FormularioEditarNomina" onSubmit={manejadorSubmitEditar} className="grid grid-cols-2 gap-3">
-                    <div>
-                        <label htmlFor="employee_id" className="block text-sm font-medium text-gray-700 mb-1">Employee:</label>
-                        <select
-                            name="employee_id"
-                            value={nominaEditar.employee_id || ''}
-                            onChange={handleInputChangeEdit}
-                            className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-                        >
-                            <option value="">-- Seleccione un Empleado --</option>
-                            {listaEmpleados.map((emp) => (
-                                <option key={emp.id} value={emp.id}>
-                                    {emp.name} {emp.lastname} (C.I: {emp.ci})
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <div>
-                        <label htmlFor="period_start" className="block text-sm font-medium text-gray-700 mb-1">Period Start:</label>
-                        <input
-                            type="date"
-                            name="period_start"
-                            onChange={handleInputChangeEdit}
-                            value={formatDate(nominaEditar.period_start)}
-                            className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="period_end" className="block text-sm font-medium text-gray-700 mb-1">Period End:</label>
-                        <input
-                            type="date"
-                            name="period_end"
-                            onChange={handleInputChangeEdit}
-                            value={formatDate(nominaEditar.period_end)}
-                            className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="daily_salary" className="block text-sm font-medium text-gray-700 mb-1">Daily Salary:</label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            name="daily_salary"
-                            onChange={handleInputChangeEdit}
-                            value={nominaEditar.daily_salary || ''}
-                            placeholder="Ingrese el salario diario"
-                            className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="total_days_paid" className="block text-sm font-medium text-gray-700 mb-1">Total Days Paid:</label>
-                        <input
-                            type="number"
-                            name="total_days_paid"
-                            onChange={handleInputChangeEdit}
-                            value={nominaEditar.total_days_paid || ''}
-                            placeholder="Ingrese los días pagados"
-                            className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="ivss" className="block text-sm font-medium text-gray-700 mb-1">IVSS:</label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            name="ivss"
-                            onChange={handleInputChangeEdit}
-                            value={nominaEditar.ivss || ''}
-                            placeholder="Ingrese la deducción IVSS"
-                            className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="pie" className="block text-sm font-medium text-gray-700 mb-1">PIE:</label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            name="pie"
-                            onChange={handleInputChangeEdit}
-                            value={nominaEditar.pie || ''}
-                            placeholder="Ingrese la deducción PIE"
-                            className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="faov" className="block text-sm font-medium text-gray-700 mb-1">FAOV:</label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            name="faov"
-                            onChange={handleInputChangeEdit}
-                            value={nominaEditar.faov || ''}
-                            placeholder="Ingrese la deducción FAOV"
-                            className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-                        />
-                    </div>
-                    <div className="col-span-2 text-center m-0 min-h-6">
-                        {nominaEditar.errorMsg && <span className="text-red-600 text-sm m-0">{nominaEditar.errorMsg}</span>}
-                    </div>
-                </form>
-            </Modal>
 
             {/* Modal Detalles */}
-            <Modal
+            < Modal
                 isOpen={isModalOpenDetalles}
                 onClose={handleCloseModalDetalles}
                 titulo="Detalles de Nómina"
                 acciones={renderDetallesAcciones}
             >
                 {renderDetallesBody}
-            </Modal>
+            </Modal >
         </>
     );
 

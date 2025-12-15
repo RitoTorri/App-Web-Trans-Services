@@ -10,13 +10,18 @@ import {
   apiEliminar,
   apiReactivar,
   apiExportar,
+  apiDisponibilidad,
 } from "../services/apiVehiculos";
 import { apiObtener as apiObtenerEmpleados } from "../services/apiEmpleados";
 import { apiObtenerTipo } from "../services/apiTipo_vehiculos";
+import {
+  apiListarModelos,
+  apiRegistrarModelo,
+} from "../services/apiModelVehiculo";
 
 interface RegisterFormState {
   driver_id: number;
-  model: string;
+  model: number;
   license_plate: string;
   total_seats: number;
   vehicle_type_id: number;
@@ -31,7 +36,7 @@ interface RegisterState {
 const initialState: RegisterState = {
   form: {
     driver_id: 0,
-    model: "",
+    model: 0,
     license_plate: "",
     total_seats: 0,
     vehicle_type_id: 0,
@@ -55,7 +60,7 @@ const initialStateVehiculos: VehiculosState = {
 interface VehiculoEditarState {
   id: number | null;
   driver_id: number;
-  model: string;
+  model: number;
   license_plate: string;
   total_seats: number;
   vehicle_type_id: number;
@@ -66,7 +71,7 @@ interface VehiculoEditarState {
 const initialStateVehiculoEditar: VehiculoEditarState = {
   id: null,
   driver_id: 0,
-  model: "",
+  model: 0,
   license_plate: "",
   total_seats: 0,
   vehicle_type_id: 0,
@@ -90,6 +95,11 @@ function Vehiculos() {
     []
   );
 
+  // Modelos de vehículo
+  const [listaModelos, setListaModelos] = useState<{ id: number; name: string }[]>([]);
+  const [isModalModelOpen, setIsModalModelOpen] = useState(false);
+  const [newModelName, setNewModelName] = useState("");
+
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [vehiculoEditar, setVehiculoEditar] = useState<VehiculoEditarState>(
     initialStateVehiculoEditar
@@ -110,6 +120,12 @@ function Vehiculos() {
     "activos"
   );
   const [selectedVehicle, setSelectedVehicle] = useState<Vehiculo | null>(null);
+
+  // Availability State
+  const [isModalAvailabilityOpen, setIsModalAvailabilityOpen] = useState(false);
+  const [availabilityDates, setAvailabilityDates] = useState({ startDate: "", endDate: "" });
+  const [availableVehicles, setAvailableVehicles] = useState<Vehiculo[]>([]);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
 
   const handleOpenModal = () => {
     setState(initialState);
@@ -241,6 +257,22 @@ function Vehiculos() {
     }
   };
 
+  // Cargar Modelos
+  const cargarModelos = async () => {
+    if (!accessToken) return;
+    try {
+      const response = await fetch(apiListarModelos, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setListaModelos(data.details);
+      }
+    } catch (error) {
+      console.error("Error loading models:", error);
+    }
+  };
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -350,7 +382,35 @@ function Vehiculos() {
     listarRegistros();
     cargarChoferes();
     cargarTiposVehiculo();
+    cargarModelos();
   }, []);
+
+  // Registrar Nuevo Modelo
+  const handleRegistrarModelo = async () => {
+    if (!newModelName.trim()) return;
+    try {
+      const response = await fetch(apiRegistrarModelo, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ name: newModelName }),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setSuccessMessage("Modelo registrado exitosamente.");
+        cargarModelos(); // Refresh list
+        setNewModelName("");
+        setIsModalModelOpen(false);
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
+        alert(data.message || "Error al registrar modelo.");
+      }
+    } catch (error) {
+      console.error("Error registering model:", error);
+    }
+  };
 
   //registrar vehiculo
   const manejadorSubmit = async (e: React.FormEvent) => {
@@ -378,7 +438,7 @@ function Vehiculos() {
 
       const dataToSend = {
         driver_id: Number(driver_id),
-        model: model,
+        model: Number(model),
         license_plate: license_plate,
         total_seats: Number(total_seats),
         vehicle_type_id: Number(vehicle_type_id),
@@ -611,6 +671,30 @@ function Vehiculos() {
     } catch (error) {
       console.error("Error de conexión:", error);
     }
+
+  };
+
+  const checkAvailability = async () => {
+    if (!availabilityDates.startDate || !availabilityDates.endDate) {
+      setAvailabilityError("Por favor seleccione fecha de inicio y fin.");
+      return;
+    }
+    setAvailabilityError(null);
+    try {
+      const response = await fetch(`${apiDisponibilidad}?startDate=${availabilityDates.startDate}&endDate=${availabilityDates.endDate}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setAvailableVehicles(data.details);
+      } else {
+        setAvailabilityError(data.message || "Error al consultar disponibilidad.");
+        setAvailableVehicles([]);
+      }
+    } catch (error) {
+      setAvailabilityError("Error de conexión.");
+      setAvailableVehicles([]);
+    }
   };
 
   const columnas = [
@@ -623,7 +707,16 @@ function Vehiculos() {
         return chofer ? `${chofer.name} ${chofer.lastname}` : "Sin Asignar";
       },
     },
-    { key: "model", header: "MODELO" },
+    {
+      key: "model",
+      header: "MODELO",
+      render: (item: Item) => {
+        const vehiculo = item as Vehiculo;
+        // If model is an ID, find the name in listaModelos
+        const modelo = listaModelos.find(m => m.id === vehiculo.model);
+        return modelo ? modelo.name : vehiculo.model; // Fallback if it's still a string or not found
+      }
+    },
     { key: "license_plate", header: "PLACA" },
     { key: "total_seats", header: "TOTAL ASIENTOS" },
     {
@@ -694,24 +787,35 @@ function Vehiculos() {
             isExporting={isExportar}
           />
 
+          <div className="w-full flex justify-end mb-4 px-2">
+            <button
+              onClick={() => setIsModalAvailabilityOpen(true)}
+              className="btn bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-calendar-check" viewBox="0 0 16 16">
+                <path d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z" />
+                <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z" />
+              </svg>
+              Consultar Disponibilidad
+            </button>
+          </div>
+
           <div className="w-full  flex items-center justify-around border border-gray-400 border-b-white rounded-lg rounded-b-none  shadow-md bg-white p-2">
             <button
               onClick={() => setVistaActual("activos")}
-              className={` ${
-                vistaActual === "activos"
-                  ? "py-1 px-2 border-b-3  border-green-500 transition duration-300 cursor-pointer"
-                  : "cursor-pointer"
-              } `}
+              className={` ${vistaActual === "activos"
+                ? "py-1 px-2 border-b-3  border-green-500 transition duration-300 cursor-pointer"
+                : "cursor-pointer"
+                } `}
             >
               Vehículos Activos ({stateVehiculos.registros.length})
             </button>
             <button
               onClick={() => setVistaActual("inactivos")}
-              className={` ${
-                vistaActual === "inactivos"
-                  ? "py-1 px-2 border-b-3  border-red-400 transition duration-300 cursor-pointer "
-                  : "hover:bg-gray-100 transition-all cursor-pointer"
-              } `}
+              className={` ${vistaActual === "inactivos"
+                ? "py-1 px-2 border-b-3  border-red-400 transition duration-300 cursor-pointer "
+                : "hover:bg-gray-100 transition-all cursor-pointer"
+                } `}
             >
               Vehículos Inactivos ({vehiculosInactivos.length})
             </button>
@@ -743,6 +847,82 @@ function Vehiculos() {
           )}
         </section>
       </main>
+
+
+      {/* Modal Disponibilidad */}
+      <Modal
+        isOpen={isModalAvailabilityOpen}
+        onClose={() => setIsModalAvailabilityOpen(false)}
+        titulo="Consultar Disponibilidad"
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-4">
+            <div className="form-control w-full">
+              <label className="label"><span className="label-text">Fecha Inicio</span></label>
+              <input
+                type="date"
+                className="input input-bordered"
+                value={availabilityDates.startDate}
+                onChange={(e) => setAvailabilityDates(prev => ({ ...prev, startDate: e.target.value }))}
+              />
+            </div>
+            <div className="form-control w-full">
+              <label className="label"><span className="label-text">Fecha Fin</span></label>
+              <input
+                type="date"
+                className="input input-bordered"
+                value={availabilityDates.endDate}
+                onChange={(e) => setAvailabilityDates(prev => ({ ...prev, endDate: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <button
+            className="btn btn-primary w-full"
+            onClick={checkAvailability}
+          >
+            Buscar Disponibles
+          </button>
+
+          {availabilityError && (
+            <div className="alert alert-error text-sm py-2">
+              {availabilityError}
+            </div>
+          )}
+
+          <div className="divider">Resultados</div>
+
+          <div className="overflow-y-auto max-h-60">
+            {availableVehicles.length > 0 ? (
+              <table className="table table-compact w-full">
+                <thead>
+                  <tr>
+                    <th>Modelo</th>
+                    <th>Placa</th>
+                    <th>Asientos</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {availableVehicles.map(v => (
+                    <tr key={v.id}>
+                      <td>{v.model}</td>
+                      <td>{v.license_plate}</td>
+                      <td>{v.total_seats}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-center text-gray-500">No hay resultados o no se ha realizado la búsqueda.</p>
+            )}
+          </div>
+
+          <div className="modal-action">
+            <button className="btn" onClick={() => setIsModalAvailabilityOpen(false)}>Cerrar</button>
+          </div>
+        </div>
+      </Modal>
+
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -838,14 +1018,31 @@ function Vehiculos() {
             >
               Modelo:
             </label>
-            <input
-              type="text"
-              name="model"
-              onChange={handleInputChange}
-              value={state.form.model}
-              placeholder="Ingrese el numero de AST"
-              className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-            />
+            <div className="flex gap-2">
+              <select
+                name="model"
+                value={state.form.model}
+                onChange={handleInputChange}
+                className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 bg-white focus:outline-none focus:ring-2 focus:ring-gray-300"
+              >
+                <option value="">-- Seleccione Modelo --</option>
+                {listaModelos.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setIsModalModelOpen(true);
+                }}
+                className="btn bg-green-500 hover:bg-green-600 text-white mb-2"
+              >
+                +
+              </button>
+            </div>
           </div>
           <div className="min-h-6 text-center">
             {state.error && (
@@ -855,8 +1052,10 @@ function Vehiculos() {
             )}
           </div>
         </form>
-      </Modal>
-      <Modal
+      </Modal >
+
+      {/* Modal Editar */}
+      < Modal
         isOpen={isModalOpenEdit}
         onClose={handleCloseModalEdit}
         titulo="Editar Vehículo"
@@ -869,11 +1068,12 @@ function Vehiculos() {
         >
           <div>
             <label
-              htmlFor="drive_id"
+              htmlFor="driver_id"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Chofer Asignado (Editar):
+              Chofer Asignado:
             </label>
+
             <select
               name="driver_id"
               value={vehiculoEditar.driver_id}
@@ -881,6 +1081,7 @@ function Vehiculos() {
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 bg-white focus:outline-none focus:ring-2 focus:ring-gray-300"
             >
               <option value="">-- Seleccione un Chofer --</option>
+
               {listaChoferes.map((chofer) => (
                 <option key={chofer.id} value={chofer.id}>
                   {chofer.name} {chofer.lastname} (C.I: {chofer.ci})
@@ -899,9 +1100,8 @@ function Vehiculos() {
               type="string"
               name="license_plate"
               value={vehiculoEditar.license_plate}
-              onChange={handleInputChangeEdit}
-              placeholder="Ingrese la placa"
-              className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+              readOnly
+              className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in bg-gray-200 cursor-not-allowed"
             />
           </div>
           <div>
@@ -914,8 +1114,8 @@ function Vehiculos() {
             <input
               type="number"
               name="total_seats"
-              value={vehiculoEditar.total_seats}
               onChange={handleInputChangeEdit}
+              value={vehiculoEditar.total_seats}
               placeholder="Ingrese el numero de AST"
               className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
@@ -927,14 +1127,13 @@ function Vehiculos() {
             >
               Tipo de Vehículo:
             </label>
-
             <select
               name="vehicle_type_id"
               value={vehiculoEditar.vehicle_type_id}
               onChange={handleInputChangeEdit}
-              className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 bg-white focus:outline-none focus:ring-2 focus:ring-gray-300"
+              className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 bg-white focus:outline-none focus:ring-2 focus:ring-gray-300 uppercase"
             >
-              <option value={0}>-- Seleccione Tipo --</option>
+              <option value="">-- Seleccione Tipo --</option>
 
               {listaTiposVehiculo.map((tipo) => (
                 <option key={tipo.id} value={tipo.id}>
@@ -953,59 +1152,90 @@ function Vehiculos() {
             <input
               type="text"
               name="model"
-              value={vehiculoEditar.model}
               onChange={handleInputChangeEdit}
+              value={vehiculoEditar.model}
               placeholder="Ingrese el numero de AST"
               className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
           </div>
-          <div className="col-span-2 text-center m-0  min-h-6">
-            {vehiculoEditar.errorMsg && (
-              <span className="text-red-600 text-sm m-0">
+          <div className="min-h-6 text-center">
+            {vehiculoEditar.error && (
+              <span className="text-center text-red-500 text-sm m-0">
                 {vehiculoEditar.errorMsg}
               </span>
             )}
           </div>
         </form>
-      </Modal>
+      </Modal >
 
-      <Modal
+      {/* Modal Eliminar */}
+      < Modal
         isOpen={isModalOpenDelete}
         onClose={handleCloseModalDelete}
-        titulo="Confirmar Eliminación"
+        titulo="Desactivar Vehículo"
         acciones={
-          <button
+          < button
             onClick={eliminarVehiculo}
-            className="btn bg-red-500 text-white hover:bg-red-600"
+            className="btn bg-red-500 hover:bg-red-600 text-white"
           >
-            Confirmar
-          </button>
+            Desactivar
+          </button >
         }
       >
         <p>
           ¿Estás seguro de que deseas desactivar el vehículo con placa{" "}
           <strong>{selectedVehicle?.license_plate}</strong>?
         </p>
-      </Modal>
+      </Modal >
 
-      <Modal
+      {/* Modal Restaurar */}
+      < Modal
         isOpen={isModalOpenRestore}
         onClose={handleCloseModalRestore}
-        titulo="Confirmar Reactivación"
+        titulo="Reactivar Vehículo"
         acciones={
-          <button
+          < button
             onClick={reactivarVehiculo}
-            className="btn bg-green-500 text-white hover:bg-green-600"
+            className="btn bg-green-500 hover:bg-green-600 text-white"
           >
-            Confirmar
-          </button>
+            Reactivar
+          </button >
         }
       >
         <p>
           ¿Estás seguro de que deseas reactivar el vehículo con placa{" "}
           <strong>{selectedVehicle?.license_plate}</strong>?
         </p>
-      </Modal>
+      </Modal >
+
+      {/* Modal Nuevo Modelo */}
+      < Modal
+        isOpen={isModalModelOpen}
+        onClose={() => {
+          setIsModalModelOpen(false);
+          setIsModalOpen(true); // Reopen main modal
+        }}
+        titulo="Registrar Nuevo Modelo"
+        acciones={
+          < button
+            onClick={handleRegistrarModelo}
+            className="btn bg-blue-500 hover:bg-blue-600 text-white"
+          >
+            Guardar
+          </button >
+        }
+      >
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del Modelo:</label>
+          <input
+            type="text"
+            value={newModelName}
+            onChange={(e) => setNewModelName(e.target.value)}
+            className="border border-gray-400 rounded-md w-full p-3"
+            placeholder="Ej: Toyota Corolla"
+          />
+        </div>
+      </Modal >
     </>
   );
 }

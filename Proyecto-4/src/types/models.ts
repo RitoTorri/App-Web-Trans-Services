@@ -38,7 +38,7 @@ export interface Proveedor extends Item {
 
 export interface Vehiculo extends Item {
   driver_id: number,
-  model: string,
+  model: number,
   license_plate: string,
   total_seats: number,
   vehicle_type_id: number;
@@ -49,11 +49,6 @@ export interface Nomina extends Item {
   employee_id: number;
   period_start: Date;
   period_end: Date;
-  daily_salary: number;
-  total_days_paid: number;
-  ivss: number;
-  pie: number;
-  faov: number;
 }
 
 export interface TipoVehiculo extends Item {
