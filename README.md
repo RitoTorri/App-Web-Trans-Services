@@ -41,3 +41,10 @@ Ejecuta el siguiente comando para levantar la interfaz web:
 npm run dev
 ```
 Una vez ejecutado, la terminal te mostrará la URL local (generalmente http://localhost:5173/) donde podrás ver y utilizar la aplicación.
+
+## Manual de usuario
+Para obtener una guía detallada sobre cómo utilizar las funcionalidades del sistema
+
+```
+[Abrir Manual de Usuario (PDF)](/Proyecto-4/Docs/ManualdeUsuario.pdf)
+```
