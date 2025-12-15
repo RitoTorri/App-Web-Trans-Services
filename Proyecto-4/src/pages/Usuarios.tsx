@@ -225,9 +225,6 @@ function Usuarios() {
     setIsModalOpenDelete(false);
   };
 
-  const buscar = () => {
-    console.log("Buscar");
-  };
 
   const userRegistro = (
     <button
