@@ -140,22 +140,22 @@ export function VentasGrafica() {
         throw new Error(`Error al descargar el reporte de ${tipo}`);
       }
 
-      // Convertir la respuesta a Blob (Binary Large Object)
       const blob = await response.blob();
       
-      // Crear una URL temporal para el blob
       const urlBlob = window.URL.createObjectURL(blob);
       
-      // Crear un elemento <a> invisible para forzar la descarga
-      const link = document.createElement('a');
-      link.href = urlBlob;
-      link.setAttribute('download', nombreArchivo);
-      document.body.appendChild(link);
-      link.click();
+          
+      const a = document.createElement('a');
+      a.href = urlBlob;
+      a.download = "Reporte.pdf"
       
-      // Limpieza
-      link.parentNode?.removeChild(link);
-      window.URL.revokeObjectURL(urlBlob);
+      document.body.appendChild(a)
+      a.click()
+      a.remove
+
+      window.URL.revokeObjectURL(urlBlob)
+
+      console.log("Reporte descargado.")
 
     } catch (error) {
       console.error("Error exportando PDF:", error);

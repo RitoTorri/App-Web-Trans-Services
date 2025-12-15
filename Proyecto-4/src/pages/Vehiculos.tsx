@@ -21,7 +21,7 @@ import {
 
 interface RegisterFormState {
   driver_id: number;
-  model: number;
+  vehicle_model_id: number;
   license_plate: string;
   total_seats: number;
   vehicle_type_id: number;
@@ -36,7 +36,7 @@ interface RegisterState {
 const initialState: RegisterState = {
   form: {
     driver_id: 0,
-    model: 0,
+    vehicle_model_id: 0,
     license_plate: "",
     total_seats: 0,
     vehicle_type_id: 0,
@@ -81,6 +81,7 @@ const initialStateVehiculoEditar: VehiculoEditarState = {
 
 function Vehiculos() {
   const accessToken = localStorage.getItem("token");
+  const rolUser = localStorage.getItem("rol")
   const [state, setState] = useState<RegisterState>(initialState);
   const [stateVehiculos, setStateVehiculos] = useState<VehiculosState>(
     initialStateVehiculos
@@ -165,7 +166,9 @@ function Vehiculos() {
     try {
       const response = await fetch(apiExportar, {
         method: "GET",
-        headers: {},
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        },
       });
 
       if (!response.ok) {
@@ -176,6 +179,7 @@ function Vehiculos() {
         } catch (error) {
           console.error("Error desconocido: ", errorMsg);
         }
+        return
       }
 
       const blob = await response.blob();
@@ -333,9 +337,11 @@ function Vehiculos() {
 
       const data = await response.json();
 
+      console.log("Datos",data)
+
       if (response.ok && data.success) {
         let registrosApi = data.details;
-
+        
         if (terminoBusqueda && terminoBusqueda.trim() !== "") {
           const busqueda = terminoBusqueda.toLowerCase();
           registrosApi = registrosApi.filter((vehiculo: Vehiculo) => {
@@ -420,7 +426,7 @@ function Vehiculos() {
 
     if (
       !state.form.driver_id ||
-      !state.form.model ||
+      !state.form.vehicle_model_id ||
       !state.form.license_plate ||
       !state.form.total_seats ||
       !state.form.vehicle_type_id
@@ -433,16 +439,18 @@ function Vehiculos() {
       return;
     }
     try {
-      const { driver_id, model, license_plate, total_seats, vehicle_type_id } =
+      const { driver_id, vehicle_model_id, license_plate, total_seats, vehicle_type_id} =
         state.form;
 
       const dataToSend = {
         driver_id: Number(driver_id),
-        model: Number(model),
+        vehicle_model_id: Number(vehicle_model_id),
         license_plate: license_plate,
         total_seats: Number(total_seats),
-        vehicle_type_id: Number(vehicle_type_id),
+        vehicle_type_id: Number(vehicle_type_id)
       };
+
+      console.log("URL: ",apiRegistrar)
 
       const response = await fetch(apiRegistrar, {
         method: "POST",
@@ -453,7 +461,9 @@ function Vehiculos() {
         body: JSON.stringify(dataToSend),
       });
 
-      console.log(dataToSend);
+      console.log("Datos enviados:",dataToSend);
+
+      
 
       if (response.ok) {
         console.log("Registrado con exito");
@@ -466,13 +476,18 @@ function Vehiculos() {
           setSuccessMessage(null);
         }, 3000);
       } else {
-        const errorData = await response.json();
-        console.error(errorData);
-        setState((prevState) => ({
-          ...prevState,
-          error: true,
-          errorMsg: "Ya existe un dato registrado.",
-        }));
+        const errorText = await response.text()
+        console.error("Error del servidor: ",errorText)
+        try{
+          const errorData = JSON.parse(errorText);
+            setState((prevState) => ({
+                ...prevState,
+                error: true,
+                errorMsg: errorData.message || "Error al registrar.",
+            }));
+        }catch(e){
+          console.log("status: ",response.status)
+        }
       }
     } catch (error) {
       console.error("Error de conexion: ", error);
@@ -697,7 +712,7 @@ function Vehiculos() {
     }
   };
 
-  const columnas = [
+  let columnas = [
     {
       key: "driver_id",
       header: "NOMBRE CONDUCTOR",
@@ -707,16 +722,16 @@ function Vehiculos() {
         return chofer ? `${chofer.name} ${chofer.lastname}` : "Sin Asignar";
       },
     },
-    {
-      key: "model",
-      header: "MODELO",
-      render: (item: Item) => {
-        const vehiculo = item as Vehiculo;
-        // If model is an ID, find the name in listaModelos
-        const modelo = listaModelos.find(m => m.id === vehiculo.model);
-        return modelo ? modelo.name : vehiculo.model; // Fallback if it's still a string or not found
-      }
-    },
+    // {
+    //   key: "model",
+    //   header: "MODELO",
+    //   render: (item: Item) => {
+    //     const vehiculo = item as Vehiculo;
+    //     // If model is an ID, find the name in listaModelos
+    //     const modelo = listaModelos.find(m => m.id === vehiculo.model);
+    //     return modelo ? modelo.name : vehiculo.model; // Fallback if it's still a string or not found
+    //   }
+    // },
     { key: "license_plate", header: "PLACA" },
     { key: "total_seats", header: "TOTAL ASIENTOS" },
     {
@@ -730,8 +745,12 @@ function Vehiculos() {
         return tipo ? tipo.type_name : "Desconocido";
       },
     },
-    { key: "actions", header: "Acciones" },
   ];
+
+  if(rolUser === "SuperUsuario"){
+    const columnaAcciones = { key: "actions", header: "Acciones" }
+    columnas.push(columnaAcciones)
+  }
 
   const onDeleteHandler = (id: number, nombre?: string) => {
     const vehiculo = stateVehiculos.registros.find((v) => v.id === id);
@@ -757,7 +776,7 @@ function Vehiculos() {
       form="FormularioEditarVehiculo"
       className="btn bg-blue-500 hover:bg-blue-600 text-white"
     >
-      Registrar
+      Editar
     </button>
   );
 
@@ -1020,8 +1039,8 @@ function Vehiculos() {
             </label>
             <div className="flex gap-2">
               <select
-                name="model"
-                value={state.form.model}
+                name="vehicle_model_id"
+                value={state.form.vehicle_model_id}
                 onChange={handleInputChange}
                 className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 bg-white focus:outline-none focus:ring-2 focus:ring-gray-300"
               >
@@ -1142,7 +1161,7 @@ function Vehiculos() {
               ))}
             </select>
           </div>
-          <div>
+          {/* <div>
             <label
               htmlFor="model"
               className="block text-sm font-medium text-gray-700 mb-1"
@@ -1157,7 +1176,7 @@ function Vehiculos() {
               placeholder="Ingrese el numero de AST"
               className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
-          </div>
+          </div> */}
           <div className="min-h-6 text-center">
             {vehiculoEditar.error && (
               <span className="text-center text-red-500 text-sm m-0">

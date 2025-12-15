@@ -683,7 +683,7 @@ function Clientes() {
                 name="rif"
                 value={numero}
                 onChange={(e) => onRifChange(e, "numero")}
-                placeholder="Ingrese el RIF"
+                placeholder="Ingrese el RIF, ej: 12345678-9"
                 className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
               />
             </div>

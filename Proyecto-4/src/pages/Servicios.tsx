@@ -83,6 +83,7 @@ const formatDateToInput = (date: Date): string => {
 
 function Servicios() {
   const accessToken = localStorage.getItem("token");
+  const rolUser = localStorage.getItem('rol')
   const [state, setState] = useState<RegisterState>(initialState);
 
   const [pendingServices, setPendingServices] = useState<PendingService[]>([]);
@@ -355,7 +356,7 @@ function Servicios() {
       });
 
       const data = await response.json();
-      console.log("Datos:  ", data);
+      console.log("Datos de la tabla:  ", data);
 
       if (response.ok && data.success) {
         const registrosApi = data.details;
@@ -539,12 +540,20 @@ function Servicios() {
           </div>
         </div>
 
-        <div className="border-t">
-          <div className="flex justify-between items-center mt-4 pt-2  border-gray-300">
+        <div>
+         <div className="flex flex-col mt-4 pt-2 border-t gap-2 border-gray-300">
+            <div className="flex justify-between">
             <span className="font-bold text-lg">Monto Total a Pagar:</span>
             <span className="font-bold text-xl text-blue-600 font-mono">
-              Bs {registroSeleccionado.totalAmount}
+              $ {registroSeleccionado.totalAmount}
             </span>
+            </div>
+            {registroSeleccionado.totalAmountBs && (
+              <div className="flex justify-between">
+              <span className="font-semibold text-base ">Conversión:</span>
+              <span className="font-semibold text-lg text-blue-400 font-mono">Bs {registroSeleccionado.totalAmountBs}</span>
+            </div>
+            )}
           </div>
 
           <div className="mt-4 flex justify-end">
@@ -578,6 +587,8 @@ function Servicios() {
 
     return (
       <>
+      {rolUser === 'SuperUsuario' || rolUser === 'Administrador' ? (
+        <>
         <button
           onClick={() => {
             if (
@@ -603,6 +614,9 @@ function Servicios() {
         >
           Registrar Pago
         </button>
+        </>
+      ): null}
+        
       </>
     );
   }, [registroSeleccionado, actualizarEstadoPagp]);

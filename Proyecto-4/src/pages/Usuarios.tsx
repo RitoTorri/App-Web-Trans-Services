@@ -62,6 +62,8 @@ function Usuarios() {
   const [toDeleteId, setToDeleteId] = useState<number | null>(null);
   const [nombreUsuario, setNombreUsuario] = useState<string | null>(null);
 
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -116,6 +118,11 @@ function Usuarios() {
         console.log("Registrado con exito");
         setState(initialState);
         handleCloseModal();
+        listarRegistros()
+        setSuccessMessage("Usuario registrado con éxito")
+        setTimeout(() => {
+          setSuccessMessage(null)
+        },3000)
       } else {
         console.error("Error: ", data.details);
       }
@@ -248,6 +255,20 @@ function Usuarios() {
   return (
     <>
       <main className="min-h-screen">
+        {successMessage && (
+          <div
+            className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-xl bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded shadow"
+            role="alert"
+          >
+            <span className="block sm:inline">{successMessage}</span>
+            <span
+              className="absolute top-0 bottom-0 right-0 px-4 py-3 cursor-pointer"
+              onClick={() => setSuccessMessage(null)}
+            >
+              &times;
+            </span>
+          </div>
+        )}
         <section className="flex flex-col flex-grow w-full items-center pl-4 pr-4">
           <ToolBar
             onRegister={handleOpenModal}

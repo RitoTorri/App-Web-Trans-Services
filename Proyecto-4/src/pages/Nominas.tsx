@@ -59,6 +59,7 @@ const initialStateNominas: NominasState = {
 function Nominas() {
 
     const accessToken = localStorage.getItem("token");
+    const rolUser = localStorage.getItem('rol')
     const [state, setState] = useState<RegisterState>(initialState);
     const [stateNominas, setStateNominas] = useState<NominasState>(initialStateNominas);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -412,15 +413,15 @@ function Nominas() {
                         Deducciones y Neto
                     </h3>
                     <div className="grid grid-cols-3 gap-2 text-sm text-red-600 mb-3">
-                        <p>SSO: {registroSeleccionado.description?.deductions?.sso}  Bs</p>
-                        <p>PIE: {registroSeleccionado.description?.deductions?.pie}  Bs</p>
-                        <p>FAOV: {registroSeleccionado.description?.deductions?.faov}  Bs</p>
+                        <p>SSO: {registroSeleccionado.description?.deductions?.sso}  $</p>
+                        <p>PIE: {registroSeleccionado.description?.deductions?.pie}  $</p>
+                        <p>FAOV: {registroSeleccionado.description?.deductions?.faov}  $</p>
                     </div>
 
                     <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-300">
                         <span className="font-bold text-lg">Total Deducciones:</span>
                         <span className="font-bold text-lg text-red-600 font-mono">
-                                {registroSeleccionado.description?.totalDeductions} Bs
+                                {registroSeleccionado.description?.totalDeductions} $
                         </span>
                     </div>
 
@@ -468,7 +469,9 @@ function Nominas() {
 
         return (
             <>
-                <button
+            {rolUser === "Administrador" || rolUser === "SuperUsuario" ? (
+                <>
+                    <button
                     onClick={() => {
                         if (window.confirm("¿Estás seguro de que deseas CANCELAR esta nómina?")) {
                             editarStatusRegistro(id, "cancelled");
@@ -489,6 +492,10 @@ function Nominas() {
                 >
                     Procesar Pago
                 </button>
+                </>
+
+            ): null}
+                
             </>
         );
     }, [registroSeleccionado]);

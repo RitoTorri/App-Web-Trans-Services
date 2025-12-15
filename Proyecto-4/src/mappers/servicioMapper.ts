@@ -24,6 +24,12 @@ export const mapServiciosToTabla = (registrosApi: ServicioApi[]): ItemPlana[] =>
 
         const montoNumerico = Number(registro.totalAmount)
 
+        const montoBs = Number(registro.totalAmountBs)
+ 
+        const montoFinalBs = !isNaN(montoBs)
+        ? montoBs.toFixed(2)
+        : "0.00"
+
         const montoFinal = !isNaN(montoNumerico)
         ? montoNumerico.toFixed(2)
         : "0.00"
@@ -40,7 +46,8 @@ export const mapServiciosToTabla = (registrosApi: ServicioApi[]): ItemPlana[] =>
             nombre_conductor: registro.vehicle.name_driver,
             apellido_conductor: registro.vehicle.lastname_driver,
             fecha_factura: fechaFactura,
-            monto_final: montoFinal
+            monto_final: montoFinal,
+            monto_bs: montoFinalBs
         }
     })
 }
