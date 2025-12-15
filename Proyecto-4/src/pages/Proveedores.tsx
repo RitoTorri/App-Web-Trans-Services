@@ -462,8 +462,18 @@ function Proveedores() {
             error:true,
             errorMsg: "Número de RIF invalido, intente de nuevo"
           }))
-        }else if(data.details){
-          console.log("")
+        }else if(data.details === "Contact info already exists in another provider."){
+          setState((prev) => ({
+            ...prev,
+            error: true,
+            errorMsg: "Error al registrar, información de contacto ya existente."
+          }))
+        }else if(data.details === "RIF already exists."){
+          setState((prev) => ({
+            ...prev,
+            error: true,
+            errorMsg: "Error al registrar, RIF ya se encuntra registrado."
+          }))
         }
       }
     } catch (error) {
@@ -679,12 +689,18 @@ function Proveedores() {
         }, 3000);
       } else {
         console.error("Error en la edicion: ", data.details);
-        if(data.details === "Provider with this rif already exists."){
+        if(data.details === "RIF already exists."){
         setProveedorEditar((prev) => ({
           ...prev,
           error: true,
-          errorMsg: "Error al editar, el RIF ya se encuntra registrar.",
+          errorMsg: "Error al editar, el RIF ya se encuntra registrado.",
         }));
+      }else if(data.details === "Contact info already exists in another provider."){
+        setProveedorEditar((prev) => ({
+          ...prev,
+          error: true,
+          errorMsg: "Error al editar, información de contacto ya existente."
+        }))
       }
       }
     } catch (error) {

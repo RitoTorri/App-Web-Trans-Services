@@ -203,10 +203,10 @@ export function ClientesFrecuentesGrafica() {
 
   return (
     <>
-      <main className="pb-2 pt-2 bg-white rounded-sm border border-gray-400 shadow-md">
+      <main className="pb-2 pt-2 bg-white rounded-md border border-gray-400 shadow-md">
         <form
           onSubmit={handleBuscar}
-          className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg shadow-sm w-fit border border-gray-200 ml-6"
+          className="flex items-center gap-3 p-3 bg-gray-50 rounded-sm shadow-sm w-fit border border-gray-200 ml-6"
         >
           <label
             htmlFor="month-select"
@@ -247,7 +247,7 @@ export function ClientesFrecuentesGrafica() {
         </form>
 
         <section className="grid grid-cols-2 gap-4 m-4">
-          <div className="p-4 rounded-lg shadow-sm bg-white h-80 border border-gray-200">
+          <div className="p-4 rounded-sm shadow-sm bg-white h-80 border border-gray-200">
             <h2 className="text-xl font-medium text-gray-800">
               Clientes con mayor frecuencia ({displayMonth} {displayYear})
             </h2>
@@ -284,7 +284,7 @@ export function ClientesFrecuentesGrafica() {
             </ResponsiveContainer>
           </div>
 
-          <div className="p-4 rounded-lg shadow-sm bg-white h-80 border border-gray-200 ">
+          <div className="p-4 rounded-sm shadow-sm bg-white h-80 border border-gray-200 ">
             <h2 className="text-xl font-medium text-gray-800">
               Conductores con más viajes realizados ({displayMonth}{" "}
               {displayYear})
