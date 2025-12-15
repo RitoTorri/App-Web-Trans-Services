@@ -13,6 +13,10 @@ import {
 } from "../services/apiVehiculos";
 import { apiObtener as apiObtenerEmpleados } from "../services/apiEmpleados";
 import { apiObtenerTipo } from "../services/apiTipo_vehiculos";
+import {
+  apiListarModelos,
+  apiRegistrarModelo,
+} from "../services/apiModelVehiculo";
 
 interface RegisterFormState {
   driver_id: number;
@@ -89,6 +93,11 @@ function Vehiculos() {
   const [listaTiposVehiculo, setListaTiposVehiculo] = useState<TipoVehiculo[]>(
     []
   );
+
+  // Modelos de vehículo
+  const [listaModelos, setListaModelos] = useState<{ id: number; name: string }[]>([]);
+  const [isModalModelOpen, setIsModalModelOpen] = useState(false);
+  const [newModelName, setNewModelName] = useState("");
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [vehiculoEditar, setVehiculoEditar] = useState<VehiculoEditarState>(
@@ -241,6 +250,22 @@ function Vehiculos() {
     }
   };
 
+  // Cargar Modelos
+  const cargarModelos = async () => {
+    if (!accessToken) return;
+    try {
+      const response = await fetch(apiListarModelos, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setListaModelos(data.details);
+      }
+    } catch (error) {
+      console.error("Error loading models:", error);
+    }
+  };
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -350,7 +375,35 @@ function Vehiculos() {
     listarRegistros();
     cargarChoferes();
     cargarTiposVehiculo();
+    cargarModelos();
   }, []);
+
+  // Registrar Nuevo Modelo
+  const handleRegistrarModelo = async () => {
+    if (!newModelName.trim()) return;
+    try {
+      const response = await fetch(apiRegistrarModelo, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ name: newModelName }),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setSuccessMessage("Modelo registrado exitosamente.");
+        cargarModelos(); // Refresh list
+        setNewModelName("");
+        setIsModalModelOpen(false);
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
+        alert(data.message || "Error al registrar modelo.");
+      }
+    } catch (error) {
+      console.error("Error registering model:", error);
+    }
+  };
 
   //registrar vehiculo
   const manejadorSubmit = async (e: React.FormEvent) => {
@@ -697,21 +750,19 @@ function Vehiculos() {
           <div className="w-full  flex items-center justify-around border border-gray-400 border-b-white rounded-lg rounded-b-none  shadow-md bg-white p-2">
             <button
               onClick={() => setVistaActual("activos")}
-              className={` ${
-                vistaActual === "activos"
+              className={` ${vistaActual === "activos"
                   ? "py-1 px-2 border-b-3  border-green-500 transition duration-300 cursor-pointer"
                   : "cursor-pointer"
-              } `}
+                } `}
             >
               Vehículos Activos ({stateVehiculos.registros.length})
             </button>
             <button
               onClick={() => setVistaActual("inactivos")}
-              className={` ${
-                vistaActual === "inactivos"
+              className={` ${vistaActual === "inactivos"
                   ? "py-1 px-2 border-b-3  border-red-400 transition duration-300 cursor-pointer "
                   : "hover:bg-gray-100 transition-all cursor-pointer"
-              } `}
+                } `}
             >
               Vehículos Inactivos ({vehiculosInactivos.length})
             </button>
@@ -838,14 +889,28 @@ function Vehiculos() {
             >
               Modelo:
             </label>
-            <input
-              type="text"
-              name="model"
-              onChange={handleInputChange}
-              value={state.form.model}
-              placeholder="Ingrese el numero de AST"
-              className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
-            />
+            <div className="flex gap-2">
+              <select
+                name="model"
+                value={state.form.model}
+                onChange={handleInputChange}
+                className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 bg-white focus:outline-none focus:ring-2 focus:ring-gray-300"
+              >
+                <option value="">-- Seleccione Modelo --</option>
+                {listaModelos.map((m) => (
+                  <option key={m.id} value={m.name}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false) || setIsModalModelOpen(true)}
+                className="btn bg-green-500 hover:bg-green-600 text-white mb-2"
+              >
+                +
+              </button>
+            </div>
           </div>
           <div className="min-h-6 text-center">
             {state.error && (
@@ -856,6 +921,8 @@ function Vehiculos() {
           </div>
         </form>
       </Modal>
+
+      {/* Modal Editar */}
       <Modal
         isOpen={isModalOpenEdit}
         onClose={handleCloseModalEdit}
@@ -869,11 +936,12 @@ function Vehiculos() {
         >
           <div>
             <label
-              htmlFor="drive_id"
+              htmlFor="driver_id"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Chofer Asignado (Editar):
+              Chofer Asignado:
             </label>
+
             <select
               name="driver_id"
               value={vehiculoEditar.driver_id}
@@ -881,6 +949,7 @@ function Vehiculos() {
               className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 bg-white focus:outline-none focus:ring-2 focus:ring-gray-300"
             >
               <option value="">-- Seleccione un Chofer --</option>
+
               {listaChoferes.map((chofer) => (
                 <option key={chofer.id} value={chofer.id}>
                   {chofer.name} {chofer.lastname} (C.I: {chofer.ci})
@@ -899,9 +968,8 @@ function Vehiculos() {
               type="string"
               name="license_plate"
               value={vehiculoEditar.license_plate}
-              onChange={handleInputChangeEdit}
-              placeholder="Ingrese la placa"
-              className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+              readOnly
+              className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in bg-gray-200 cursor-not-allowed"
             />
           </div>
           <div>
@@ -914,8 +982,8 @@ function Vehiculos() {
             <input
               type="number"
               name="total_seats"
-              value={vehiculoEditar.total_seats}
               onChange={handleInputChangeEdit}
+              value={vehiculoEditar.total_seats}
               placeholder="Ingrese el numero de AST"
               className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
@@ -927,14 +995,13 @@ function Vehiculos() {
             >
               Tipo de Vehículo:
             </label>
-
             <select
               name="vehicle_type_id"
               value={vehiculoEditar.vehicle_type_id}
               onChange={handleInputChangeEdit}
-              className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 bg-white focus:outline-none focus:ring-2 focus:ring-gray-300"
+              className="border border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 bg-white focus:outline-none focus:ring-2 focus:ring-gray-300 uppercase"
             >
-              <option value={0}>-- Seleccione Tipo --</option>
+              <option value="">-- Seleccione Tipo --</option>
 
               {listaTiposVehiculo.map((tipo) => (
                 <option key={tipo.id} value={tipo.id}>
@@ -953,15 +1020,15 @@ function Vehiculos() {
             <input
               type="text"
               name="model"
-              value={vehiculoEditar.model}
               onChange={handleInputChangeEdit}
+              value={vehiculoEditar.model}
               placeholder="Ingrese el numero de AST"
               className="border  border-gray-400 rounded-md mb-2 shadow-xs w-full p-3 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
             />
           </div>
-          <div className="col-span-2 text-center m-0  min-h-6">
-            {vehiculoEditar.errorMsg && (
-              <span className="text-red-600 text-sm m-0">
+          <div className="min-h-6 text-center">
+            {vehiculoEditar.error && (
+              <span className="text-center text-red-500 text-sm m-0">
                 {vehiculoEditar.errorMsg}
               </span>
             )}
@@ -969,16 +1036,17 @@ function Vehiculos() {
         </form>
       </Modal>
 
+      {/* Modal Eliminar */}
       <Modal
         isOpen={isModalOpenDelete}
         onClose={handleCloseModalDelete}
-        titulo="Confirmar Eliminación"
+        titulo="Desactivar Vehículo"
         acciones={
           <button
             onClick={eliminarVehiculo}
-            className="btn bg-red-500 text-white hover:bg-red-600"
+            className="btn bg-red-500 hover:bg-red-600 text-white"
           >
-            Confirmar
+            Desactivar
           </button>
         }
       >
@@ -988,16 +1056,17 @@ function Vehiculos() {
         </p>
       </Modal>
 
+      {/* Modal Restaurar */}
       <Modal
         isOpen={isModalOpenRestore}
         onClose={handleCloseModalRestore}
-        titulo="Confirmar Reactivación"
+        titulo="Reactivar Vehículo"
         acciones={
           <button
             onClick={reactivarVehiculo}
-            className="btn bg-green-500 text-white hover:bg-green-600"
+            className="btn bg-green-500 hover:bg-green-600 text-white"
           >
-            Confirmar
+            Reactivar
           </button>
         }
       >
@@ -1005,6 +1074,35 @@ function Vehiculos() {
           ¿Estás seguro de que deseas reactivar el vehículo con placa{" "}
           <strong>{selectedVehicle?.license_plate}</strong>?
         </p>
+      </Modal>
+
+      {/* Modal Nuevo Modelo */}
+      <Modal
+        isOpen={isModalModelOpen}
+        onClose={() => {
+          setIsModalModelOpen(false);
+          setIsModalOpen(true); // Reopen main modal
+        }}
+        titulo="Registrar Nuevo Modelo"
+        acciones={
+          <button
+            onClick={handleRegistrarModelo}
+            className="btn bg-blue-500 hover:bg-blue-600 text-white"
+          >
+            Guardar
+          </button>
+        }
+      >
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del Modelo:</label>
+          <input
+            type="text"
+            value={newModelName}
+            onChange={(e) => setNewModelName(e.target.value)}
+            className="border border-gray-400 rounded-md w-full p-3"
+            placeholder="Ej: Toyota Corolla"
+          />
+        </div>
       </Modal>
     </>
   );

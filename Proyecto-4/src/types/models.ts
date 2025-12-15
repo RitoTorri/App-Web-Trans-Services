@@ -49,11 +49,6 @@ export interface Nomina extends Item {
   employee_id: number;
   period_start: Date;
   period_end: Date;
-  daily_salary: number;
-  total_days_paid: number;
-  ivss: number;
-  pie: number;
-  faov: number;
 }
 
 export interface TipoVehiculo extends Item {
