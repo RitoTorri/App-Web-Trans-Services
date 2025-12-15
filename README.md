@@ -45,6 +45,4 @@ Una vez ejecutado, la terminal te mostrará la URL local (generalmente http://lo
 ## Manual de usuario
 Para obtener una guía detallada sobre cómo utilizar las funcionalidades del sistema
 
-```
-[Abrir Manual de Usuario (PDF)](/Proyecto-4/Docs/ManualdeUsuario.pdf)
-```
+**[Abrir Manual de Usuario (PDF)](/App-Web-Trans-Services/Proyecto-4/Docs/ManualdeUsuario.pdf)**
