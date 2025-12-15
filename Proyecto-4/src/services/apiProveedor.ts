@@ -8,4 +8,4 @@ export const apiRestaurar = "http://localhost:3000/api/trans/services/provider/r
 
 export const apiEditar = "http://localhost:3000/api/trans/services/provider/"
 
-export const apiExportar = " http://localhost:3000/api/trans/services/reports/pdf/providers"
+export const apiExportar = " http://localhost:3000/api/trans/services/reports/provider/pdf"

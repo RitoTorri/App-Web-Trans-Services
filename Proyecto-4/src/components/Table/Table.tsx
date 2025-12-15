@@ -2,7 +2,7 @@ import type { ConfiguracionColumna, TableProps } from "./Table.types";
 import type { Item } from "../../types/models";
 
 
-type PaymentStatus = "Cancelado" | "Pagado" | "Pendiente" | "pendiente" | "pagado" | "cancelled" | "draft" | "paid";
+type PaymentStatus = "Cancelado" | "Pagado" | "Pendiente" | "pendiente" | "pagado" | "cancelled" | "draft" | "paid" | "cancelado" | "Pagada" | "Cancelada" | "Borrador";
 
 /**
  * Devuelve las clases Tailwind para el color de fondo y texto del estado de pago.
@@ -12,20 +12,19 @@ type PaymentStatus = "Cancelado" | "Pagado" | "Pendiente" | "pendiente" | "pagad
 export const getStatusClasses = (status: PaymentStatus): string => {
   switch (status) {
     case "Pagado":
-      return "bg-green-100 text-green-800 border-green-400";
+    case "Pagada":
     case "pagado":
-      return "bg-green-100 text-green-800 border-green-400"
     case "paid":
-      return "bg-green-100 text-green-800 border-green-400"
+      return "bg-green-100 text-green-800 border-green-400";
     case "Pendiente":
-      return "bg-yellow-100 text-yellow-800 border-yellow-400";
     case "pendiente":
-      return "bg-yellow-100 text-yellow-800 border-yellow-400";
     case "draft":
+    case "Borrador":
       return "bg-yellow-100 text-yellow-800 border-yellow-400";
     case "Cancelado":
-      return "bg-red-100 text-red-800 border-red-400";
+    case "Cancelada":
     case "cancelled":
+    case "cancelado":
       return "bg-red-100 text-red-800 border-red-400";
     default:
       return "bg-gray-100 text-gray-800";
@@ -84,7 +83,7 @@ function Table({
                     ) : col.key === "actions" ? (
                       onEdit || onDelete || onRestore || onView ? (
                         <div className="flex space-x-2 justify-center">
-                          {onRestore &&  (
+                          {onRestore && (
                             <button
                               className="btn  font-extrabold"
                               onClick={() => {
@@ -162,11 +161,12 @@ function Table({
                                 const name = (item as any)["name"] || "";
                                 const lastName =
                                   (item as any)["lastname"] || "";
+                                const username = (item as any)["username"] || "";
 
                                 const nombreCompleto =
                                   `${name} ${lastName}`.trim();
 
-                                onDelete(item.id, nombreCompleto);
+                                onDelete(item.id, nombreCompleto, username);
                               }}
                               className="btn bg-red-500 text-white hover:bg-red-600 font-medium transition-colors"
                               title="Eliminar"

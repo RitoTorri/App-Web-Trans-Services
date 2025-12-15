@@ -10,7 +10,6 @@ const useDebounce = (callback: (searchTerm: string) => void, delay: number) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
-      // Configura el nuevo temporizador
       timeoutRef.current = setTimeout(() => {
         callback(searchTerm);
       }, delay) as unknown as number;
@@ -32,7 +31,7 @@ const useDebounce = (callback: (searchTerm: string) => void, delay: number) => {
 function ToolBar({ titulo, onSearch, onRegister, onExport, isExporting }: ToolBarProps) {
   const [localSearchTerm, setLocalSearchTerm] = useState("");
 
-  const debouncedSearch = useDebounce(onSearch, 500);
+  const debouncedSearch = useDebounce(onSearch || (() => {}),500);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
@@ -41,7 +40,7 @@ function ToolBar({ titulo, onSearch, onRegister, onExport, isExporting }: ToolBa
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && onSearch) {
       if (e.currentTarget.value) {
         onSearch(e.currentTarget.value);
       } else {
@@ -50,6 +49,8 @@ function ToolBar({ titulo, onSearch, onRegister, onExport, isExporting }: ToolBa
     }
   };
 
+  const rolUser = localStorage.getItem('rol')
+
   return (
     <div className="flex flex-col md:flex-row md:justify-between md:items-center w-full mb-5 mt-5 p-4 bg-white shadow-md rounded-lg border border-gray-400">
       <h1 className="text-2xl font-bold text-gray-800 mb-4 md:mb-0">
@@ -57,12 +58,14 @@ function ToolBar({ titulo, onSearch, onRegister, onExport, isExporting }: ToolBa
       </h1>
 
       <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
-        <div className="relative w-full md:min-w-68">
+
+        {onSearch && (
+           <div className="relative w-full md:min-w-68">
           <input
             type="text"
             placeholder="Buscar..."
             value={localSearchTerm}
-            onChange={handleInputChange} // Usamos el nuevo handler con debounce
+            onChange={handleInputChange} 
             onKeyPress={handleKeyPress}
             className="w-full px-4 py-2 border border-gray-400 rounded-md shadow-xs focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
           />
@@ -79,8 +82,11 @@ function ToolBar({ titulo, onSearch, onRegister, onExport, isExporting }: ToolBa
             </svg>
           </div>
         </div>
+        )}
+       
 
-        <button
+        {rolUser !== "Invitado" && (
+          <button
           onClick={onRegister}
           className="btn text-white bg-blue-500 hover:bg-blue-600 rounded-md flex items-center space-x-2 px-4 py-2"
         >
@@ -96,8 +102,10 @@ function ToolBar({ titulo, onSearch, onRegister, onExport, isExporting }: ToolBa
           </svg>
           <span>Registrar Nuevo</span>
         </button>
+        )}
+        
 
-        {onExport && (
+        {onExport &&(
           <button onClick={onExport} disabled={isExporting} className="btn text-red-500 border-2 hover:text-red-600 border-red-500 rounded-md flex items-center px-4 py-2">
             {isExporting ? (
               <span className="flex items-center w-20 justify-center gap-2">

@@ -38,7 +38,7 @@ export interface Proveedor extends Item {
 
 export interface Vehiculo extends Item {
   driver_id: number,
-  model: string,
+  model: number,
   license_plate: string,
   total_seats: number,
   vehicle_type_id: number;

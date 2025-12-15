@@ -140,6 +140,7 @@ function Proveedores() {
   const [toRestoreId, setToRestoreId] = useState<number | null>(null);
 
   const accessToken = localStorage.getItem("token");
+  const rolUser = localStorage.getItem("rol")
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -401,6 +402,15 @@ function Proveedores() {
     try {
       const { name, rif, contact_email_info, contact_phone_info } = state.form;
 
+      if(contact_phone_info.length !== 11){
+        setState((prev) => ({
+          ...prev,
+          error: true,
+          errorMsg: "Número de teléfono invalido"
+        }))
+        return
+      }
+
       const contacts = [];
 
       if (contact_email_info) {
@@ -430,8 +440,10 @@ function Proveedores() {
         body: JSON.stringify(dataToSend),
       });
 
-      console.log("Data: ", dataToSend);
+      const data = await response.json();
 
+      const errorData = data.details[0]
+      
       if (response.ok) {
         console.log("Registro exitoso");
         setSuccessMessage("Proveedor Registrado con éxito");
@@ -443,8 +455,16 @@ function Proveedores() {
           setSuccessMessage(null);
         }, 3000);
       } else {
-        const errorData = await response.text();
-        console.log("Error: ", errorData);
+        console.log("err: ",data.details)
+        if(errorData === "Invalid RIF."){
+          setState((prev) => ({
+            ...prev,
+            error:true,
+            errorMsg: "Número de RIF invalido, intente de nuevo"
+          }))
+        }else if(data.details){
+          console.log("")
+        }
       }
     } catch (error) {
       console.log("Error de servidor: ", error);
@@ -486,6 +506,7 @@ function Proveedores() {
     delete datosEnviar.correo;
     delete datosEnviar.telefono;
 
+
     if (!proveedorEditar.name || !proveedorEditar.rif) {
       setProveedorEditar((prev) => ({
         ...prev,
@@ -493,6 +514,15 @@ function Proveedores() {
         errorMsg: "Por favor, complete todos los campos obligatorios",
       }));
       return;
+    }
+
+    if(proveedorEditar.telefono && proveedorEditar.telefono.length !== 11){
+      setProveedorEditar((prev) => ({
+        ...prev,
+        error: true, 
+        errorMsg: "Número de télefono invalido"
+      }))
+      return
     }
 
     if(Object.keys(datosEnviar).length === 0){
@@ -620,7 +650,7 @@ function Proveedores() {
       return;
     }
 
-    console.log("Los datos: ", datosEditar);
+    
 
     try {
       const apiEditarRegistro = `${apiEditar}${idEditar}`;
@@ -648,12 +678,14 @@ function Proveedores() {
           setSuccessMessage(null);
         }, 3000);
       } else {
-        console.error("Error en la edicion: ", data.message);
+        console.error("Error en la edicion: ", data.details);
+        if(data.details === "Provider with this rif already exists."){
         setProveedorEditar((prev) => ({
           ...prev,
           error: true,
-          errorMsg: data.message || "Error al intentar editar",
+          errorMsg: "Error al editar, el RIF ya se encuntra registrar.",
         }));
+      }
       }
     } catch (error) {
       console.error("Error de conexion: ", error);
@@ -712,13 +744,20 @@ function Proveedores() {
     }
   }
 
-  const columnas = [
+  let columnas = [
     { key: "name", header: "Nombre" },
     { key: "rif", header: "rif" },
     { key: "telefono", header: "Teléfono" },
     { key: "correo", header: "Correo" },
-    { key: "actions", header: "Acciones" },
+    
   ];
+
+  if(rolUser === "SuperUsuario"){
+    const columnaAcciones = { key: "actions", header: "Acciones" }
+    columnas.push(columnaAcciones)
+  }
+
+
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 

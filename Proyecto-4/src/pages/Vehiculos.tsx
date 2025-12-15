@@ -10,6 +10,7 @@ import {
   apiEliminar,
   apiReactivar,
   apiExportar,
+  apiDisponibilidad,
 } from "../services/apiVehiculos";
 import { apiObtener as apiObtenerEmpleados } from "../services/apiEmpleados";
 import { apiObtenerTipo } from "../services/apiTipo_vehiculos";
@@ -20,7 +21,7 @@ import {
 
 interface RegisterFormState {
   driver_id: number;
-  model: string;
+  model: number;
   license_plate: string;
   total_seats: number;
   vehicle_type_id: number;
@@ -35,7 +36,7 @@ interface RegisterState {
 const initialState: RegisterState = {
   form: {
     driver_id: 0,
-    model: "",
+    model: 0,
     license_plate: "",
     total_seats: 0,
     vehicle_type_id: 0,
@@ -59,7 +60,7 @@ const initialStateVehiculos: VehiculosState = {
 interface VehiculoEditarState {
   id: number | null;
   driver_id: number;
-  model: string;
+  model: number;
   license_plate: string;
   total_seats: number;
   vehicle_type_id: number;
@@ -70,7 +71,7 @@ interface VehiculoEditarState {
 const initialStateVehiculoEditar: VehiculoEditarState = {
   id: null,
   driver_id: 0,
-  model: "",
+  model: 0,
   license_plate: "",
   total_seats: 0,
   vehicle_type_id: 0,
@@ -119,6 +120,12 @@ function Vehiculos() {
     "activos"
   );
   const [selectedVehicle, setSelectedVehicle] = useState<Vehiculo | null>(null);
+
+  // Availability State
+  const [isModalAvailabilityOpen, setIsModalAvailabilityOpen] = useState(false);
+  const [availabilityDates, setAvailabilityDates] = useState({ startDate: "", endDate: "" });
+  const [availableVehicles, setAvailableVehicles] = useState<Vehiculo[]>([]);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
 
   const handleOpenModal = () => {
     setState(initialState);
@@ -431,7 +438,7 @@ function Vehiculos() {
 
       const dataToSend = {
         driver_id: Number(driver_id),
-        model: model,
+        model: Number(model),
         license_plate: license_plate,
         total_seats: Number(total_seats),
         vehicle_type_id: Number(vehicle_type_id),
@@ -664,6 +671,30 @@ function Vehiculos() {
     } catch (error) {
       console.error("Error de conexión:", error);
     }
+
+  };
+
+  const checkAvailability = async () => {
+    if (!availabilityDates.startDate || !availabilityDates.endDate) {
+      setAvailabilityError("Por favor seleccione fecha de inicio y fin.");
+      return;
+    }
+    setAvailabilityError(null);
+    try {
+      const response = await fetch(`${apiDisponibilidad}?startDate=${availabilityDates.startDate}&endDate=${availabilityDates.endDate}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setAvailableVehicles(data.details);
+      } else {
+        setAvailabilityError(data.message || "Error al consultar disponibilidad.");
+        setAvailableVehicles([]);
+      }
+    } catch (error) {
+      setAvailabilityError("Error de conexión.");
+      setAvailableVehicles([]);
+    }
   };
 
   const columnas = [
@@ -676,7 +707,16 @@ function Vehiculos() {
         return chofer ? `${chofer.name} ${chofer.lastname}` : "Sin Asignar";
       },
     },
-    { key: "model", header: "MODELO" },
+    {
+      key: "model",
+      header: "MODELO",
+      render: (item: Item) => {
+        const vehiculo = item as Vehiculo;
+        // If model is an ID, find the name in listaModelos
+        const modelo = listaModelos.find(m => m.id === vehiculo.model);
+        return modelo ? modelo.name : vehiculo.model; // Fallback if it's still a string or not found
+      }
+    },
     { key: "license_plate", header: "PLACA" },
     { key: "total_seats", header: "TOTAL ASIENTOS" },
     {
@@ -747,12 +787,25 @@ function Vehiculos() {
             isExporting={isExportar}
           />
 
+          <div className="w-full flex justify-end mb-4 px-2">
+            <button
+              onClick={() => setIsModalAvailabilityOpen(true)}
+              className="btn bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-calendar-check" viewBox="0 0 16 16">
+                <path d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z" />
+                <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z" />
+              </svg>
+              Consultar Disponibilidad
+            </button>
+          </div>
+
           <div className="w-full  flex items-center justify-around border border-gray-400 border-b-white rounded-lg rounded-b-none  shadow-md bg-white p-2">
             <button
               onClick={() => setVistaActual("activos")}
               className={` ${vistaActual === "activos"
-                  ? "py-1 px-2 border-b-3  border-green-500 transition duration-300 cursor-pointer"
-                  : "cursor-pointer"
+                ? "py-1 px-2 border-b-3  border-green-500 transition duration-300 cursor-pointer"
+                : "cursor-pointer"
                 } `}
             >
               Vehículos Activos ({stateVehiculos.registros.length})
@@ -760,8 +813,8 @@ function Vehiculos() {
             <button
               onClick={() => setVistaActual("inactivos")}
               className={` ${vistaActual === "inactivos"
-                  ? "py-1 px-2 border-b-3  border-red-400 transition duration-300 cursor-pointer "
-                  : "hover:bg-gray-100 transition-all cursor-pointer"
+                ? "py-1 px-2 border-b-3  border-red-400 transition duration-300 cursor-pointer "
+                : "hover:bg-gray-100 transition-all cursor-pointer"
                 } `}
             >
               Vehículos Inactivos ({vehiculosInactivos.length})
@@ -794,6 +847,82 @@ function Vehiculos() {
           )}
         </section>
       </main>
+
+
+      {/* Modal Disponibilidad */}
+      <Modal
+        isOpen={isModalAvailabilityOpen}
+        onClose={() => setIsModalAvailabilityOpen(false)}
+        titulo="Consultar Disponibilidad"
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-4">
+            <div className="form-control w-full">
+              <label className="label"><span className="label-text">Fecha Inicio</span></label>
+              <input
+                type="date"
+                className="input input-bordered"
+                value={availabilityDates.startDate}
+                onChange={(e) => setAvailabilityDates(prev => ({ ...prev, startDate: e.target.value }))}
+              />
+            </div>
+            <div className="form-control w-full">
+              <label className="label"><span className="label-text">Fecha Fin</span></label>
+              <input
+                type="date"
+                className="input input-bordered"
+                value={availabilityDates.endDate}
+                onChange={(e) => setAvailabilityDates(prev => ({ ...prev, endDate: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <button
+            className="btn btn-primary w-full"
+            onClick={checkAvailability}
+          >
+            Buscar Disponibles
+          </button>
+
+          {availabilityError && (
+            <div className="alert alert-error text-sm py-2">
+              {availabilityError}
+            </div>
+          )}
+
+          <div className="divider">Resultados</div>
+
+          <div className="overflow-y-auto max-h-60">
+            {availableVehicles.length > 0 ? (
+              <table className="table table-compact w-full">
+                <thead>
+                  <tr>
+                    <th>Modelo</th>
+                    <th>Placa</th>
+                    <th>Asientos</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {availableVehicles.map(v => (
+                    <tr key={v.id}>
+                      <td>{v.model}</td>
+                      <td>{v.license_plate}</td>
+                      <td>{v.total_seats}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-center text-gray-500">No hay resultados o no se ha realizado la búsqueda.</p>
+            )}
+          </div>
+
+          <div className="modal-action">
+            <button className="btn" onClick={() => setIsModalAvailabilityOpen(false)}>Cerrar</button>
+          </div>
+        </div>
+      </Modal>
+
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -898,14 +1027,17 @@ function Vehiculos() {
               >
                 <option value="">-- Seleccione Modelo --</option>
                 {listaModelos.map((m) => (
-                  <option key={m.id} value={m.name}>
+                  <option key={m.id} value={m.id}>
                     {m.name}
                   </option>
                 ))}
               </select>
               <button
                 type="button"
-                onClick={() => setIsModalOpen(false) || setIsModalModelOpen(true)}
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setIsModalModelOpen(true);
+                }}
                 className="btn bg-green-500 hover:bg-green-600 text-white mb-2"
               >
                 +
@@ -920,10 +1052,10 @@ function Vehiculos() {
             )}
           </div>
         </form>
-      </Modal>
+      </Modal >
 
       {/* Modal Editar */}
-      <Modal
+      < Modal
         isOpen={isModalOpenEdit}
         onClose={handleCloseModalEdit}
         titulo="Editar Vehículo"
@@ -1034,50 +1166,50 @@ function Vehiculos() {
             )}
           </div>
         </form>
-      </Modal>
+      </Modal >
 
       {/* Modal Eliminar */}
-      <Modal
+      < Modal
         isOpen={isModalOpenDelete}
         onClose={handleCloseModalDelete}
         titulo="Desactivar Vehículo"
         acciones={
-          <button
+          < button
             onClick={eliminarVehiculo}
             className="btn bg-red-500 hover:bg-red-600 text-white"
           >
             Desactivar
-          </button>
+          </button >
         }
       >
         <p>
           ¿Estás seguro de que deseas desactivar el vehículo con placa{" "}
           <strong>{selectedVehicle?.license_plate}</strong>?
         </p>
-      </Modal>
+      </Modal >
 
       {/* Modal Restaurar */}
-      <Modal
+      < Modal
         isOpen={isModalOpenRestore}
         onClose={handleCloseModalRestore}
         titulo="Reactivar Vehículo"
         acciones={
-          <button
+          < button
             onClick={reactivarVehiculo}
             className="btn bg-green-500 hover:bg-green-600 text-white"
           >
             Reactivar
-          </button>
+          </button >
         }
       >
         <p>
           ¿Estás seguro de que deseas reactivar el vehículo con placa{" "}
           <strong>{selectedVehicle?.license_plate}</strong>?
         </p>
-      </Modal>
+      </Modal >
 
       {/* Modal Nuevo Modelo */}
-      <Modal
+      < Modal
         isOpen={isModalModelOpen}
         onClose={() => {
           setIsModalModelOpen(false);
@@ -1085,12 +1217,12 @@ function Vehiculos() {
         }}
         titulo="Registrar Nuevo Modelo"
         acciones={
-          <button
+          < button
             onClick={handleRegistrarModelo}
             className="btn bg-blue-500 hover:bg-blue-600 text-white"
           >
             Guardar
-          </button>
+          </button >
         }
       >
         <div>
@@ -1103,7 +1235,7 @@ function Vehiculos() {
             placeholder="Ej: Toyota Corolla"
           />
         </div>
-      </Modal>
+      </Modal >
     </>
   );
 }

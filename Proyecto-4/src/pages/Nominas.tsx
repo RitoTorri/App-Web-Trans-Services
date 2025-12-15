@@ -70,6 +70,10 @@ function Nominas() {
     const [isModalOpenDetalles, setIsModalOpenDetalles] = useState(false);
     const [registroSeleccionado, setRegistroSeleccionado] = useState<any | null>(null);
 
+    // Date Filters
+    const [fechaDesde, setFechaDesde] = useState<string>("");
+    const [fechaHasta, setFechaHasta] = useState<string>("");
+
     const cargarEmpleados = async () => {
         if (!accessToken) return;
         const url = `${apiObtenerEmpleados}true/all`;
@@ -135,7 +139,7 @@ function Nominas() {
             const esFecha = /^\d{4}-\d{2}-\d{2}$/.test(termino);
 
             if (esFecha) {
-                // Según tu tercera foto, enviamos start y end iguales para buscar ese día exacto
+                // enviamos start y end iguales para buscar ese día exacto
                 filterSearchPayload = {
                     dateStart: termino,
                     dateEnd: termino
@@ -304,7 +308,7 @@ function Nominas() {
             id_empleado: item.employee?.id,
             empleado: `${item.employee?.name || ''} ${item.employee?.lastname || ''}`.trim(),
             periodo: `${formatDate(item.Payment_period?.from)} - ${formatDate(item.Payment_period?.to)}`,
-            monto: `Bs ${item.description?.net_salary}`,
+            monto: `${item.description?.net_salary} $`,
             status: mapStatus[item.status] || item.status,
             // Guardamos el objeto original para usarlo al editar/ver
             original: item
@@ -312,7 +316,6 @@ function Nominas() {
     }, [stateNominas.registros]);
 
     const columnas = [
-        { key: "id", header: "Nro Empleado" },
         { key: "empleado", header: "Empleado" },
         { key: "periodo", header: "Periodo" },
         { key: "monto", header: "Monto Neto" },
@@ -397,10 +400,10 @@ function Nominas() {
                 <div className="bg-white border border-gray-200 rounded-lg p-3">
                     <h3 className="font-bold text-gray-900 mb-2">Detalles del Cálculo</h3>
                     <div className="grid grid-cols-2 gap-2">
-                        <p>Salario Diario: <span className="font-mono">Bs {registroSeleccionado.details?.salary_daily}</span></p>
+                        <p>Salario Diario: <span className="font-mono">USD $ {registroSeleccionado.details?.salary_daily}</span></p>
                         <p>Días Pagados: <span className="font-mono">{registroSeleccionado.details?.total_days_paid}</span></p>
-                        <p>Salario Mensual: <span className="font-mono">Bs {registroSeleccionado.description?.monthly_salary}</span></p>
-                        <p>Salario Quincenal: <span className="font-mono">Bs {registroSeleccionado.description?.salary_biweekly}</span></p>
+                        <p>Salario Mensual: <span className="font-mono">USD $ {registroSeleccionado.description?.monthly_salary}</span></p>
+                        <p>Salario Quincenal: <span className="font-mono">USD $ {registroSeleccionado.description?.salary_biweekly}</span></p>
                     </div>
                 </div>
 
@@ -409,22 +412,33 @@ function Nominas() {
                         Deducciones y Neto
                     </h3>
                     <div className="grid grid-cols-3 gap-2 text-sm text-red-600 mb-3">
-                        <p>SSO: Bs {registroSeleccionado.description?.deductions?.sso}</p>
-                        <p>PIE: Bs {registroSeleccionado.description?.deductions?.pie}</p>
-                        <p>FAOV: Bs {registroSeleccionado.description?.deductions?.faov}</p>
+                        <p>SSO: {registroSeleccionado.description?.deductions?.sso}  Bs</p>
+                        <p>PIE: {registroSeleccionado.description?.deductions?.pie}  Bs</p>
+                        <p>FAOV: {registroSeleccionado.description?.deductions?.faov}  Bs</p>
                     </div>
 
                     <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-300">
                         <span className="font-bold text-lg">Total Deducciones:</span>
                         <span className="font-bold text-lg text-red-600 font-mono">
-                            Bs {registroSeleccionado.description?.totalDeductions}
+                                {registroSeleccionado.description?.totalDeductions} Bs
                         </span>
                     </div>
 
                     <div className="flex justify-between items-center mt-2">
                         <span className="font-bold text-xl">Sueldo Neto:</span>
                         <span className="font-bold text-2xl text-blue-600 font-mono">
-                            Bs {registroSeleccionado.description?.net_salary}
+                            <span className="font-bold text-2xl text-blue-600 font-mono">
+                                {registroSeleccionado.description?.net_salary} $ 
+                            </span>
+                        </span>
+                    </div>
+
+                    <div className="flex justify-between items-center mt-2">
+                        <span className="font-bold text-xl">Sueldo Neto bs:</span>
+                        <span className="font-bold text-2xl text-blue-600 font-mono">
+                            <span className="font-bold text-2xl text-blue-600 font-mono">
+                                    {registroSeleccionado.description?.net_salary_bs} BS
+                            </span>
                         </span>
                     </div>
 
@@ -512,6 +526,51 @@ function Nominas() {
                                 <div className="p-4 bg-white border border-gray-400 rounded-lg shadow-sm">
                                     <span>Canceladas: {contadorNominas.cancelled}</span>
                                 </div>
+                            </div>
+
+                            <div className="w-full flex items-center mb-4 gap-2 bg-white p-2 rounded-sm border shadow-sm border-gray-400">
+                                <span>De: </span>
+                                <div>
+                                    <input
+                                        type="date"
+                                        value={fechaDesde}
+                                        onChange={(e) => setFechaDesde(e.target.value)}
+                                        className="border border-gray-400 rounded-md shadow-inner  p-1.5 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+                                    />
+                                </div>
+                                <span>Hasta:</span>
+                                <div>
+                                    <input
+                                        type="date"
+                                        value={fechaHasta}
+                                        onChange={(e) => setFechaHasta(e.target.value)}
+                                        className="border border-gray-400 rounded-md shadow-inner  p-1.5 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-300 transition-all ease-in"
+                                    />
+                                </div>
+                                <button className="btn bg-blue-500 pt-2 pb-2 text-white rounded hover:bg-blue-600" onClick={() => listarRegistros()}>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        className="bi bi-search"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+                                    </svg>
+                                </button>
+                                {(fechaDesde || fechaHasta) && (
+                                    <button
+                                        onClick={() => {
+                                            setFechaDesde("");
+                                            setFechaHasta("");
+                                            listarRegistros(""); // Reset search
+                                        }}
+                                        className="btn text-xs bg-red-400 text-white"
+                                    >
+                                        Limpiar Fechas
+                                    </button>
+                                )}
                             </div>
                             <Table
                                 data={datosParaTabla}
